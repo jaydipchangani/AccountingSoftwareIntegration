@@ -162,7 +162,9 @@ namespace WebApplication1.Controllers
                         Type = item["Type"]?.ToString() ?? "Service",
                         QuickBooksUserId = quickBooksUserId,
                         QuantityOnHand = item["QtyOnHand"]?.ToObject<decimal?>(),
-                        AsOfDate = DateTime.TryParse(item["InvStartDate"]?.ToString(), out var parsedDate) ? parsedDate : (DateTime?)null
+                        AsOfDate = DateTime.TryParse(item["InvStartDate"]?.ToString(), out var parsedDate) ? parsedDate : (DateTime?)null,
+                        SyncToken = item["SyncToken"]?.ToString()
+                        
                     };
 
                     if (item["IncomeAccountRef"] != null)
@@ -419,44 +421,78 @@ namespace WebApplication1.Controllers
         }
 
 
+        private async Task<(string SyncToken, string Id)> GetLatestItemInfoAsync(string itemId, string realmId, string accessToken)
+        {
+            var url = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/item/{itemId}?minorversion=65";
+
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var response = await _httpClient.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"Failed to fetch latest item info: {content}");
+
+            dynamic json = JsonConvert.DeserializeObject(content);
+            return (json.Item.SyncToken.ToString(), json.Item.Id.ToString());
+        }
+
+
         [HttpPut("edit-product/{id}")]
-        public async Task<IActionResult> EditProduct(string id, [FromQuery] string realmId, [FromBody] UpdateProductRequest updatedProduct)
+        public async Task<IActionResult> EditProduct(string id, [FromBody] UpdateProductRequest updatedProduct)
         {
             if (string.IsNullOrEmpty(id))
                 return BadRequest("Product ID is required.");
-            if (string.IsNullOrEmpty(realmId))
-                return BadRequest("Realm ID is required.");
             if (updatedProduct == null)
                 return BadRequest("Updated product data is required.");
 
-            var authHeader = Request.Headers["Authorization"].ToString();
-            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
-                return BadRequest("Missing or invalid access token.");
-
-            var accessToken = authHeader["Bearer ".Length..].Trim();
-
             try
             {
-                var url = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/item?minorversion=65";
-                var httpRequest = new HttpRequestMessage(HttpMethod.Post, url)
-                {
-                    Headers =
-            {
-                Authorization = new AuthenticationHeaderValue("Bearer", accessToken),
-                Accept = { MediaTypeWithQualityHeaderValue.Parse("application/json") }
-            }
-                };
+                // Step 1: Retrieve QuickBooks token
+                var tokenRecord = await _dbContext.QuickBooksTokens
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefaultAsync();
 
-                // Create sparse update payload based on product type
-                object sparsePayload;
+                if (tokenRecord == null)
+                    return NotFound("No QuickBooks token found.");
+
+                var accessToken = tokenRecord.AccessToken;
+                var realmId = tokenRecord.RealmId;
+
+                if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(realmId))
+                    return BadRequest("Access token or Realm ID is missing.");
+
+                // Step 2: Fetch latest product from QuickBooks to get SyncToken
+                var fetchUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/item/{id}?minorversion=65";
+
+                var fetchRequest = new HttpRequestMessage(HttpMethod.Get, fetchUrl);
+                fetchRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                fetchRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var fetchResponse = await _httpClient.SendAsync(fetchRequest);
+                var fetchContent = await fetchResponse.Content.ReadAsStringAsync();
+
+                if (!fetchResponse.IsSuccessStatusCode)
+                    return StatusCode((int)fetchResponse.StatusCode, fetchContent);
+
+                var productData = JsonConvert.DeserializeObject<QuickBooksProductResponse>(fetchContent);
+                var latestSyncToken = productData?.Item?.SyncToken;
+
+                if (string.IsNullOrEmpty(latestSyncToken))
+                    return BadRequest("Could not retrieve SyncToken.");
+
+                // Step 3: Construct sparse update payload
+                object updatePayload;
 
                 if (updatedProduct.Type.Equals("Service", StringComparison.OrdinalIgnoreCase))
                 {
-                    sparsePayload = new
+                    updatePayload = new
                     {
                         sparse = true,
-                        Id = updatedProduct.Id,
-                        //SyncToken = updatedProduct.SyncToken,
+                        Id = id,
+                        SyncToken = latestSyncToken,
                         Name = updatedProduct.Name,
                         Description = updatedProduct.Description,
                         UnitPrice = updatedProduct.UnitPrice,
@@ -465,11 +501,11 @@ namespace WebApplication1.Controllers
                 }
                 else // Inventory
                 {
-                    sparsePayload = new
+                    updatePayload = new
                     {
                         sparse = true,
-                        Id = updatedProduct.Id,
-                        //SyncToken = updatedProduct.SyncToken,
+                        Id = id,
+                        SyncToken = latestSyncToken,
                         Name = updatedProduct.Name,
                         Description = updatedProduct.Description,
                         UnitPrice = updatedProduct.UnitPrice,
@@ -479,15 +515,21 @@ namespace WebApplication1.Controllers
                     };
                 }
 
-                httpRequest.Content = new StringContent(JsonConvert.SerializeObject(sparsePayload), Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.SendAsync(httpRequest);
-                var content = await response.Content.ReadAsStringAsync();
+                // Step 4: Send update request
+                var updateUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/item?minorversion=65";
+                var updateRequest = new HttpRequestMessage(HttpMethod.Post, updateUrl);
+                updateRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                updateRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                updateRequest.Content = new StringContent(JsonConvert.SerializeObject(updatePayload), Encoding.UTF8, "application/json");
 
-                if (!response.IsSuccessStatusCode)
+                var updateResponse = await _httpClient.SendAsync(updateRequest);
+                var updateContent = await updateResponse.Content.ReadAsStringAsync();
+
+                if (!updateResponse.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"QuickBooks Error Response: {content}");
-                    return StatusCode((int)response.StatusCode, content);
+                    Console.WriteLine($"QuickBooks Error Response: {updateContent}");
+                    return StatusCode((int)updateResponse.StatusCode, updateContent);
                 }
 
                 return Ok("Product updated successfully in QuickBooks.");
@@ -498,6 +540,7 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, "An error occurred while updating the product.");
             }
         }
+
 
 
 

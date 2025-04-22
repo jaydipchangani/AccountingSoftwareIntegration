@@ -633,13 +633,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "realmId",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "requestBody": {
@@ -1279,6 +1272,10 @@
             "nullable": true
           },
           "expenseAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "syncToken": {
             "type": "string",
             "nullable": true
           }

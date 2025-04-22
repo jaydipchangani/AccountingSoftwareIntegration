@@ -34,5 +34,7 @@ namespace WebApplication1.Models
         public string IncomeAccountId { get;  set; }
         public string? AssetAccountId { get;  set; }
         public string? ExpenseAccountId { get;  set; }
+
+        public string? SyncToken { get; set; }
     }
 }

@@ -393,11 +393,6 @@
         "IsRequired": true
       },
       {
-        "Name": "realmId",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
         "Name": "updatedProduct",
         "Type": "WebApplication1.Models.UpdateProductRequest",
         "IsRequired": true
