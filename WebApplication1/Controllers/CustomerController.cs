@@ -149,7 +149,9 @@ namespace WebApplication1.Controllers
 
                             if (existingCustomer != null)
                             {
-                                _dbContext.Entry(existingCustomer).CurrentValues.SetValues(customer);
+                                existingCustomer.DisplayName = customer.DisplayName;
+                                existingCustomer.CompanyName = customer.CompanyName;
+                                existingCustomer.Email = customer.Email;
                             }
                             else
                             {

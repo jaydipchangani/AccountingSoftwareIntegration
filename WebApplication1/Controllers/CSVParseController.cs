@@ -36,7 +36,10 @@ public class CSVParseController : ControllerBase
                 return BadRequest(new { message = "Validation failed.", errors });
             }
 
-            return Ok(new { message = "CSV data processed successfully." });
+            // ✅ Sync customers after parsing
+            await _csvParseService.SyncCustomersAsync();
+
+            return Ok(new { message = "CSV parsed and customers synced successfully." });
         }
         catch (Exception ex)
         {

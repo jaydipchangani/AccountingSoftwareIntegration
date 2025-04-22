@@ -3,11 +3,13 @@ using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using WebApplication1.Data;
 using WebApplication1.Models;
+using static System.Net.WebRequestMethods;
 
 public class CSVParseService
 {
@@ -29,7 +31,6 @@ public class CSVParseService
     {
         var errors = new List<string>();
 
-        // 🔐 Authenticate QuickBooks
         var qbToken = await _context.QuickBooksTokens
             .OrderByDescending(q => q.Id)
             .FirstOrDefaultAsync();
@@ -48,7 +49,6 @@ public class CSVParseService
         var response = await httpClient.GetAsync(apiUrl);
         response.EnsureSuccessStatusCode();
 
-        // 📄 Read CSV
         using var reader = new StreamReader(file.OpenReadStream(), Encoding.UTF8);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
@@ -58,12 +58,12 @@ public class CSVParseService
 
         var records = csv.GetRecords<CSVParse>().ToList();
 
-        var invoiceSet = new HashSet<string>(); // for duplicate check within CSV
+        var invoiceSet = new HashSet<string>();
 
         for (int i = 0; i < records.Count; i++)
         {
             var row = records[i];
-            int rowNum = i + 2; // 1-based + header
+            int rowNum = i + 2;
 
             // Check required fields
             if (string.IsNullOrWhiteSpace(row.InvoiceNumber)) errors.Add($"Row {rowNum}: InvoiceNumber is required.");
@@ -85,17 +85,84 @@ public class CSVParseService
             }
         }
 
-        // If any validation errors, return without saving
         if (errors.Any())
         {
             return (false, errors);
         }
 
-        // 🧹 Clear and insert new data
         _context.CSVParses.RemoveRange(_context.CSVParses);
         _context.CSVParses.AddRange(records);
         await _context.SaveChangesAsync();
 
         return (true, new List<string>());
     }
+
+
+    public async Task SyncCustomersAsync()
+    {
+        var rows = await _context.CSVParses.ToListAsync();
+        if (rows == null || rows.Count == 0) return;
+
+        var httpClient = _httpClientFactory.CreateClient();
+
+        // Fetch latest customers
+        var fetchResponse = await httpClient.GetAsync("https://localhost:7241/api/Customer/fetch-customers-from-quickbooks");
+        if (!fetchResponse.IsSuccessStatusCode)
+        {
+            var error = await fetchResponse.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to fetch customers. Status: {fetchResponse.StatusCode}, Error: {error}");
+        }
+
+
+        // 2. Get local customer list
+        var customers = await _context.Customers.ToListAsync();
+
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.CustomerName)) continue;
+
+            var existingCustomer = customers
+                .FirstOrDefault(c => c.DisplayName?.Trim().ToLower() == row.CustomerName.Trim().ToLower());
+
+            var customerPayload = new
+            {
+                displayName = row.CustomerName,
+                companyName = row.CustomerName,
+                email = row.CustomerEmail,
+                phone = "string",
+                billingLine1= "string",
+                  billingCity= "string",
+                  billingState= "string",
+                  billingPostalCode= "string",
+                  billingCountry= "string"
+            }
+        ;
+
+            var json = JsonConvert.SerializeObject(customerPayload);
+            var jsonContent = new StringContent(json, Encoding.UTF8, "application/json");
+            if (existingCustomer != null)
+            {
+                var updateUrl = $"https://localhost:7241/api/Customer/update-customer/{existingCustomer.Id}";
+                var updateResponse = await httpClient.PutAsync(updateUrl, jsonContent);
+                if (!updateResponse.IsSuccessStatusCode)
+                {
+                    var error = await updateResponse.Content.ReadAsStringAsync();
+                    throw new Exception($"Failed to update customer {row.CustomerName}. Status: {updateResponse.StatusCode}, Error: {error}");
+                }
+            }
+            else
+            {
+                var addUrl = "https://localhost:7241/api/Customer/add-customer";
+                var addResponse = await httpClient.PostAsync(addUrl, jsonContent);
+                if (!addResponse.IsSuccessStatusCode)
+                {
+                    var error = await addResponse.Content.ReadAsStringAsync();
+                    throw new Exception($"Failed to add customer {row.CustomerName}. Status: {addResponse.StatusCode}, Error: {error}");
+                }
+            }
+
+        }
+    }
+
+
 }
