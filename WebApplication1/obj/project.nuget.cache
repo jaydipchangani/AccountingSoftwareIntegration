@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "aKDUsS0Rkl4=",
+  "dgSpecHash": "yHMy4yRF2eo=",
   "success": true,
   "projectFilePath": "C:\\QuickBooksIntegration\\QuickBooksIntegration\\WebApplication1\\WebApplication1\\WebApplication1.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Prayag\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\Prayag\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",
+    "C:\\Users\\Prayag\\.nuget\\packages\\csvhelper\\33.0.1\\csvhelper.33.0.1.nupkg.sha512",
     "C:\\Users\\Prayag\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Prayag\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.14\\microsoft.aspnetcore.authentication.jwtbearer.8.0.14.nupkg.sha512",
     "C:\\Users\\Prayag\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\6.0.0\\microsoft.bcl.asyncinterfaces.6.0.0.nupkg.sha512",

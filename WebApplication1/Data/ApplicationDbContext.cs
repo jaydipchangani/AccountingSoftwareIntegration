@@ -22,6 +22,8 @@ namespace WebApplication1.Data
 
         public DbSet<Vendor> Vendors { get; set; }
         public DbSet<Item> Items { get; set; }
+
+        public DbSet<CSVParse> CSVParses { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Add index constraints

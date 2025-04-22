@@ -446,3 +446,4 @@ C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\o
 C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\obj\Debug\net8.0\WebApplication1.genruntimeconfig.cache
 C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\obj\Debug\net8.0\ref\WebApplication1.dll
 C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\obj\Debug\net8.0\WebApplication1.sourcelink.json
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\bin\Debug\net8.0\CsvHelper.dll
