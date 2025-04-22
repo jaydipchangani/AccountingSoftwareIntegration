@@ -1,6 +1,7 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text;
 using WebApplication1.Data;
@@ -29,9 +30,12 @@ namespace WebApplication1.Services
                 MissingFieldFound = null
             });
 
-            var records = csv.GetRecords<CSVParse>().ToList();
+            var newRecords = csv.GetRecords<CSVParse>().ToList();
 
-            _context.CSVParses.AddRange(records);
+            _context.CSVParses.RemoveRange(_context.CSVParses);
+
+            _context.CSVParses.AddRange(newRecords);
+
             await _context.SaveChangesAsync();
         }
     }
