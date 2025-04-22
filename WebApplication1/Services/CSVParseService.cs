@@ -172,52 +172,126 @@ public class CSVParseService
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        // 1. Fetch latest products from QuickBooks into local DB
+        // Step 2: Call the QuickBooks item fetch API
         var fetchResponse = await httpClient.GetAsync("https://localhost:7241/api/Products/fetch-items-from-quickbooks");
         fetchResponse.EnsureSuccessStatusCode();
 
-        // 2. Get local product list
-        var localProducts = await _context.Products.ToListAsync();
+        // Step 3: Load local products
+        var products = await _context.Products.ToListAsync();
 
         foreach (var row in rows)
         {
             if (string.IsNullOrWhiteSpace(row.ItemName)) continue;
 
-            var existingProduct = localProducts
+            var existingProduct = products
                 .FirstOrDefault(p => p.Name?.Trim().ToLower() == row.ItemName.Trim().ToLower());
-
-            var productPayload = new
-            {
-                Name = row.ItemName,
-                Description = row.ItemDescription,
-                Type= "Service",
-                IncomeAccountId= "54",
-                AssetAccountId= "81",
-                ExpenseAccountId= "80",
-                IncomeAccount= "Sales of Product Income",
-                AssetAccount= "Inventory Asset",
-                ExpenseAccount= "Cost of Goods Sold"
-
-            }
-        ;
-
-            var json = JsonConvert.SerializeObject(productPayload);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             if (existingProduct != null)
             {
+                // Step 4: Prepare update payload
+                var updatePayload = new
+                {
+                    id = existingProduct.Id.ToString(),
+                    name = row.ItemName,
+                    description = row.ItemDescription,
+                    type = "Service",
+                    IncomeAccountId = "54",
+                    AssetAccountId = "81",
+                    ExpenseAccountId = "80",
+                    IncomeAccount = "Sales of Product Income",
+                    AssetAccount = "Inventory Asset",
+                    ExpenseAccount = "Cost of Goods Sold",
+                };
+
+                var json = JsonConvert.SerializeObject(updatePayload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
                 var updateUrl = $"https://localhost:7241/api/Products/edit-product/{existingProduct.Id}";
                 var updateResponse = await httpClient.PutAsync(updateUrl, content);
                 updateResponse.EnsureSuccessStatusCode();
             }
             else
             {
-                var addUrl = "https://localhost:7241/api/Products/add-product";
+                // Step 5: Add new product
+                var addPayload = new
+                {
+                    name = row.ItemName,
+                    description = row.ItemDescription,
+                    unitPrice = row.Rate,
+                    type = "Service" ,
+                    IncomeAccountId = "54",
+                    AssetAccountId= "81",
+                    ExpenseAccountId= "80",
+                    IncomeAccount= "Sales of Product Income",
+                    AssetAccount= "Inventory Asset",
+                    ExpenseAccount= "Cost of Goods Sold",
+                }
+            ;
+
+                var json = JsonConvert.SerializeObject(addPayload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var addUrl = $"https://localhost:7241/api/Products/add-product";
                 var addResponse = await httpClient.PostAsync(addUrl, content);
                 addResponse.EnsureSuccessStatusCode();
             }
         }
     }
 
+
+
+    //public async Task SyncInvoicesAsync()
+    //{
+    //    var rows = await _context.CSVParses.ToListAsync();
+    //    if (rows == null || rows.Count == 0) return;
+
+    //    var httpClient = _httpClientFactory.CreateClient();
+
+    //    // Ensure all local data is refreshed
+    //    var customerFetch = await httpClient.GetAsync("https://localhost:7241/api/Customer/fetch-customers-from-quickbooks");
+    //    customerFetch.EnsureSuccessStatusCode();
+
+    //    var productFetch = await httpClient.GetAsync("https://localhost:7241/api/Products/fetch-items-from-quickbooks");
+    //    productFetch.EnsureSuccessStatusCode();
+
+    //    var customers = await _context.Customers.ToListAsync();
+    //    var products = await _context.Products.ToListAsync();
+
+    //    foreach (var row in rows)
+    //    {
+    //        if (string.IsNullOrWhiteSpace(row.CustomerName) || string.IsNullOrWhiteSpace(row.ItemName)) continue;
+
+    //        var customer = customers.FirstOrDefault(c => c.DisplayName?.Trim().ToLower() == row.CustomerName.Trim().ToLower());
+    //        var product = products.FirstOrDefault(p => p.Name?.Trim().ToLower() == row.ItemName.Trim().ToLower());
+
+    //        if (customer == null || product == null) continue;
+
+    //        var invoicePayload = new
+    //        {
+    //            Line = new[]
+    //            {
+    //            new
+    //            {
+    //                DetailType = "SalesItemLineDetail",
+    //                Amount = row.Quantity * row.Rate,
+    //                SalesItemLineDetail = new
+    //                {
+    //                    ItemRef = new { value = product.Id.ToString() },
+    //                    Qty = row.Quantity,
+    //                    UnitPrice = row.Rate
+    //                }
+    //            }
+    //        },
+    //            CustomerRef = new { value = customer.Id.ToString() }
+    //        };
+
+    //        var json = JsonConvert.SerializeObject(invoicePayload);
+    //        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+    //        var addInvoiceUrl = "https://localhost:7241/api/InvoiceController/add-invoice";
+    //        var response = await httpClient.PostAsync(addInvoiceUrl, content);
+    //        response.EnsureSuccessStatusCode();
+    //    }
+    //}
 
 }
