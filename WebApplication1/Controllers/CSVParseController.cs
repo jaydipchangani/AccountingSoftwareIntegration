@@ -1,55 +1,46 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Data;
-using WebApplication1.Services;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace WebApplication1.Controllers
+[ApiController]
+[Route("api/[controller]")]
+public class CSVParseController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class CSVParseController : ControllerBase
+    private readonly CSVParseService _csvParseService;
+
+    public CSVParseController(CSVParseService csvParseService)
     {
-        private readonly CSVParseService _csvParseService;
-        private readonly ApplicationDbContext _context;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IConfiguration _configuration;
+        _csvParseService = csvParseService;
+    }
 
-        public CSVParseController(CSVParseService csvParseService, ApplicationDbContext context, IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    [HttpPost("upload")]
+    public async Task<IActionResult> UploadCsv(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
         {
-            _csvParseService = csvParseService;
-            _context = context;
-            _httpClientFactory = httpClientFactory;
-            _configuration = configuration;
+            return BadRequest(new { message = "No file uploaded." });
         }
 
-        [HttpPost("upload")]
-        public async Task<IActionResult> UploadCsv(IFormFile file)
+        var allowedExtensions = new[] { ".csv" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+        if (!allowedExtensions.Contains(extension))
         {
-            if (file == null || file.Length == 0)
-            {
-                return BadRequest(new { message = "No file uploaded." });
-            }
-
-            var allowedContentTypes = new[] { "text/csv", "application/vnd.ms-excel" };
-            var allowedExtensions = new[] { ".csv" };
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-            if (!allowedExtensions.Contains(extension) || !allowedContentTypes.Contains(file.ContentType))
-            {
-                return BadRequest(new { message = "Only CSV files are allowed." });
-            }
-
-            try
-            {
-                await _csvParseService.ParseAndSaveAsync(file);
-                return Ok(new { message = "CSV data parsed and saved successfully." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return BadRequest(new { message = "Only CSV files are allowed." });
         }
 
-        
+        try
+        {
+            var (success, errors) = await _csvParseService.ParseAndSaveAsync(file);
+
+            if (!success)
+            {
+                return BadRequest(new { message = "Validation failed.", errors });
+            }
+
+            return Ok(new { message = "CSV data processed successfully." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
     }
 }

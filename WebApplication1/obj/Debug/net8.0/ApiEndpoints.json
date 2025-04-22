@@ -108,7 +108,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.CSVParseController",
+    "ContainingType": "CSVParseController",
     "Method": "UploadCsv",
     "RelativePath": "api/CSVParse/upload",
     "HttpMethod": "POST",
