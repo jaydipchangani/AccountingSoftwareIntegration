@@ -15,7 +15,7 @@ namespace WebApplication1.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-       private readonly IConfiguration _config;
+        private readonly IConfiguration _config;
         private readonly ApplicationDbContext _context;
         private readonly ILogger<AuthController> _logger;
         private readonly ApplicationDbContext _dbContext;
@@ -208,7 +208,7 @@ namespace WebApplication1.Controllers
                 if (customersToDelete.Any())
                 {
                     _dbContext.Customers.RemoveRange(customersToDelete);
-                    await _dbContext.SaveChangesAsync(); 
+                    await _dbContext.SaveChangesAsync();
                     _logger.LogInformation($"Deleted {customersToDelete.Count} Customer records.");
                 }
 
@@ -222,6 +222,89 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, $"Error during logout and deletion: {ex.Message}");
             }
         }
+
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshTokenAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Starting refresh token process...");
+
+                var latestToken = await _dbContext.QuickBooksTokens
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (latestToken == null || string.IsNullOrEmpty(latestToken.RefreshToken))
+                {
+                    _logger.LogWarning("No valid refresh token found.");
+                    return BadRequest("No valid refresh token found.");
+                }
+
+                var clientId = _config["QuickBooks:ClientId"];
+                var clientSecret = _config["QuickBooks:ClientSecret"];
+                var authHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
+
+                var httpClient = new HttpClient();
+                var postData = new Dictionary<string, string>
+        {
+            { "grant_type", "refresh_token" },
+            { "refresh_token", latestToken.RefreshToken }
+        };
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer")
+                {
+                    Headers = { { "Authorization", $"Basic {authHeader}" } },
+                    Content = new FormUrlEncodedContent(postData)
+                };
+
+                var response = await httpClient.SendAsync(httpRequest);
+                var content = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("Refresh token response: {Content}", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Refresh token failed: {StatusCode} - {Content}", response.StatusCode, content);
+                    return BadRequest("Refresh token failed: " + content);
+                }
+
+                var refreshedToken = JsonSerializer.Deserialize<TokenResponse>(content);
+
+                if (refreshedToken == null)
+                {
+                    _logger.LogError("Failed to deserialize refreshed token response.");
+                    return StatusCode(500, "Failed to deserialize refreshed token data.");
+                }
+
+                // Update token in database
+                latestToken.AccessToken = refreshedToken.AccessToken;
+                latestToken.RefreshToken = refreshedToken.RefreshToken;
+                latestToken.ExpiresIn = refreshedToken.ExpiresIn;
+                latestToken.XRefreshTokenExpiresIn = refreshedToken.XRefreshTokenExpiresIn;
+                latestToken.CreatedAt = DateTime.UtcNow;
+
+                _dbContext.QuickBooksTokens.Update(latestToken);
+                await _dbContext.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Token refreshed successfully",
+                    token = new
+                    {
+                        latestToken.AccessToken,
+                        latestToken.RefreshToken,
+                        latestToken.RealmId
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while refreshing QuickBooks token.");
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
+        }
+
 
     }
 }

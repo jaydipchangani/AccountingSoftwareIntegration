@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using WebApplication1.Data;
 using WebApplication1.Models;
-using System.Text.Json;
+
 using System.Text;
 
 
@@ -141,50 +142,45 @@ namespace WebApplication1.Controllers
 
             try
             {
-                var root = JsonDocument.Parse(json);
+                var root = JObject.Parse(json);
+                var items = root["QueryResponse"]?["Item"] as JArray;
 
-                if (!root.RootElement.TryGetProperty("QueryResponse", out var queryResponse) ||
-                    !queryResponse.TryGetProperty("Item", out var items))
+                if (items == null)
                 {
                     _logger.LogWarning("No items found in QuickBooks response.");
                     return result;
                 }
 
-                foreach (var item in items.EnumerateArray())
+                foreach (var item in items)
                 {
                     var product = new Product
                     {
-                        QuickBooksItemId = item.TryGetProperty("Id", out var qbid) ? qbid.GetString() : null,
-                        Name = item.GetProperty("Name").GetString(),
-                        Description = item.TryGetProperty("Description", out var desc) ? desc.GetString() : "",
-                        Price = item.TryGetProperty("UnitPrice", out var price) ? price.GetDecimal() : 0,
-                        Type = item.TryGetProperty("Type", out var type) ? type.GetString() : "Service",
+                        QuickBooksItemId = item["Id"]?.ToString(),
+                        Name = item["Name"]?.ToString(),
+                        Description = item["Description"]?.ToString() ?? "",
+                        Price = item["UnitPrice"]?.ToObject<decimal>() ?? 0,
+                        Type = item["Type"]?.ToString() ?? "Service",
                         QuickBooksUserId = quickBooksUserId,
-                        QuantityOnHand = item.TryGetProperty("QtyOnHand", out var qty) ? qty.GetDecimal() : (decimal?)null,
-                        AsOfDate = item.TryGetProperty("InvStartDate", out var invDate) && DateTime.TryParse(invDate.GetString(), out var parsedDate)
-                                    ? parsedDate
-                                    : (DateTime?)null
+                        QuantityOnHand = item["QtyOnHand"]?.ToObject<decimal?>(),
+                        AsOfDate = DateTime.TryParse(item["InvStartDate"]?.ToString(), out var parsedDate) ? parsedDate : (DateTime?)null
                     };
 
-                    // Income Account
-                    if (item.TryGetProperty("IncomeAccountRef", out var incomeRef))
+                    if (item["IncomeAccountRef"] != null)
                     {
-                        product.IncomeAccount = incomeRef.TryGetProperty("name", out var incomeName) ? incomeName.GetString() : null;
-                        product.IncomeAccountId = incomeRef.TryGetProperty("value", out var incomeVal) ? incomeVal.GetString() : null;
+                        product.IncomeAccount = item["IncomeAccountRef"]?["name"]?.ToString();
+                        product.IncomeAccountId = item["IncomeAccountRef"]?["value"]?.ToString();
                     }
 
-                    // Asset Account (Inventory type only)
-                    if (item.TryGetProperty("AssetAccountRef", out var assetRef))
+                    if (item["AssetAccountRef"] != null)
                     {
-                        product.AssetAccount = assetRef.TryGetProperty("name", out var assetName) ? assetName.GetString() : null;
-                        product.AssetAccountId = assetRef.TryGetProperty("value", out var assetVal) ? assetVal.GetString() : null;
+                        product.AssetAccount = item["AssetAccountRef"]?["name"]?.ToString();
+                        product.AssetAccountId = item["AssetAccountRef"]?["value"]?.ToString();
                     }
 
-                    // Expense Account (optional, sometimes present in Inventory)
-                    if (item.TryGetProperty("ExpenseAccountRef", out var expenseRef))
+                    if (item["ExpenseAccountRef"] != null)
                     {
-                        product.ExpenseAccount = expenseRef.TryGetProperty("name", out var expenseName) ? expenseName.GetString() : null;
-                        product.ExpenseAccountId = expenseRef.TryGetProperty("value", out var expenseVal) ? expenseVal.GetString() : null;
+                        product.ExpenseAccount = item["ExpenseAccountRef"]?["name"]?.ToString();
+                        product.ExpenseAccountId = item["ExpenseAccountRef"]?["value"]?.ToString();
                     }
 
                     result.Add(product);
@@ -197,6 +193,7 @@ namespace WebApplication1.Controllers
 
             return result;
         }
+
 
 
         [HttpPost("delete-product/{id}")]
@@ -234,8 +231,10 @@ namespace WebApplication1.Controllers
                 return Ok("Local product updated, but QuickBooks item not found.");
             }
 
-            var item = JsonDocument.Parse(getContent).RootElement.GetProperty("Item");
-            var syncToken = item.GetProperty("SyncToken").GetString();
+            var itemObj = JObject.Parse(getContent)?["Item"];
+            var syncToken = itemObj?["SyncToken"]?.ToString();
+
+
 
             // Mark inactive in QuickBooks
             var updatePayload = new
@@ -254,7 +253,8 @@ namespace WebApplication1.Controllers
             Authorization = new AuthenticationHeaderValue("Bearer", accessToken),
             Accept = { new MediaTypeWithQualityHeaderValue("application/json") }
         },
-                Content = new StringContent(JsonSerializer.Serialize(updatePayload), Encoding.UTF8, "application/json")
+                Content = new StringContent(JsonConvert.SerializeObject(updatePayload), Encoding.UTF8, "application/json")
+
             };
 
             var updateResponse = await _httpClient.SendAsync(updateRequest);
@@ -314,30 +314,36 @@ namespace WebApplication1.Controllers
                 // Step 3: Prepare payload for QBO
                 var payload = new Dictionary<string, object>
                 {
-                    ["VId"] = Guid.NewGuid().ToString(),
                     ["Name"] = productDto.Name,
-                    ["FullyQualifiedName"] = productDto.Name,
                     ["Type"] = productDto.Type,
-                    ["IncomeAccountRef"] = new { name = productDto.IncomeAccount, value = productDto.IncomeAccountId },
+                    ["IncomeAccountRef"] = new { value = productDto.IncomeAccountId },
                     ["UnitPrice"] = productDto.Price,
                     ["Active"] = true,
                     ["TrackQtyOnHand"] = productDto.Type == "Inventory"
                 };
 
-                if (!string.IsNullOrWhiteSpace(productDto.Description))
+                // Basic validation
+                if (string.IsNullOrWhiteSpace(productDto.Name) ||
+                    string.IsNullOrWhiteSpace(productDto.Type))
                 {
-                    payload["Description"] = productDto.Description;
+                    return BadRequest("Name and Type are required fields.");
                 }
 
+                // Inventory-specific validation
                 if (productDto.Type == "Inventory")
                 {
-                    payload["AssetAccountRef"] = new { name = productDto.AssetAccount, value = productDto.AssetAccountId };
-                    payload["ExpenseAccountRef"] = new { name = productDto.ExpenseAccount, value = productDto.ExpenseAccountId };
-                    payload["QtyOnHand"] = productDto.QuantityOnHand;
-                    payload["InvStartDate"] = productDto.AsOfDate?.ToString("yyyy-MM-dd");
+                    if (string.IsNullOrWhiteSpace(productDto.AssetAccount) ||
+                        string.IsNullOrWhiteSpace(productDto.ExpenseAccount) ||
+                        string.IsNullOrWhiteSpace(productDto.IncomeAccount) ||
+                        productDto.QuantityOnHand == null ||
+                        productDto.AsOfDate == null)
+                    {
+                        return BadRequest("AssetAccount, ExpenseAccount, IncomeAccount, QuantityOnHand, and AsOfDate are required for inventory items.");
+                    }
                 }
 
-                var jsonPayload = JsonSerializer.Serialize(payload);
+                var jsonPayload = JsonConvert.SerializeObject(payload);
+
                 var requestUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/item";
 
                 // Step 4: Setup request
@@ -361,10 +367,12 @@ namespace WebApplication1.Controllers
                 }
 
                 // Step 6: Parse response
-                using var document = JsonDocument.Parse(responseBody);
-                var itemJson = document.RootElement.GetProperty("Item");
+                var responseObj = JObject.Parse(responseBody);
+                var itemJson = responseObj["Item"];
 
-                var quickBooksItemId = itemJson.GetProperty("Id").GetString();
+
+                var quickBooksItemId = itemJson?["Id"]?.ToString();
+
 
                 // Step 7: Save to DB
                 var newProduct = new Product
@@ -471,7 +479,7 @@ namespace WebApplication1.Controllers
                     };
                 }
 
-                httpRequest.Content = new StringContent(JsonSerializer.Serialize(sparsePayload), Encoding.UTF8, "application/json");
+                httpRequest.Content = new StringContent(JsonConvert.SerializeObject(sparsePayload), Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.SendAsync(httpRequest);
                 var content = await response.Content.ReadAsStringAsync();

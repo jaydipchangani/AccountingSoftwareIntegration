@@ -445,3 +445,4 @@ C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\o
 C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\obj\Debug\net8.0\WebAppli.7D14BD69.Up2Date
 C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\obj\Debug\net8.0\WebApplication1.genruntimeconfig.cache
 C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\obj\Debug\net8.0\ref\WebApplication1.dll
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\WebApplication1\obj\Debug\net8.0\WebApplication1.sourcelink.json

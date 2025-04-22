@@ -112,7 +112,7 @@ namespace WebApplication1.Services
             using var document = await JsonDocument.ParseAsync(responseStream);
 
             var vendorJson = document.RootElement.GetProperty("Vendor");
-
+             
             var newVendor = new Vendor
             {
                 VId = Guid.NewGuid().ToString(),
