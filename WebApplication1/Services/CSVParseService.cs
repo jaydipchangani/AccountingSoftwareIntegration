@@ -130,11 +130,11 @@ public class CSVParseService
                 companyName = row.CustomerName,
                 email = row.CustomerEmail,
                 phone = "string",
-                billingLine1= "string",
-                  billingCity= "string",
-                  billingState= "string",
-                  billingPostalCode= "string",
-                  billingCountry= "string"
+                billingLine1 = "string",
+                billingCity = "string",
+                billingState = "string",
+                billingPostalCode = "string",
+                billingCountry = "string"
             }
         ;
 
@@ -161,6 +161,61 @@ public class CSVParseService
                 }
             }
 
+        }
+    }
+
+
+    public async Task SyncProductsAsync()
+    {
+        var rows = await _context.CSVParses.ToListAsync();
+        if (rows == null || rows.Count == 0) return;
+
+        var httpClient = _httpClientFactory.CreateClient();
+
+        // 1. Fetch latest products from QuickBooks into local DB
+        var fetchResponse = await httpClient.GetAsync("https://localhost:7241/api/Products/fetch-items-from-quickbooks");
+        fetchResponse.EnsureSuccessStatusCode();
+
+        // 2. Get local product list
+        var localProducts = await _context.Products.ToListAsync();
+
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.ItemName)) continue;
+
+            var existingProduct = localProducts
+                .FirstOrDefault(p => p.Name?.Trim().ToLower() == row.ItemName.Trim().ToLower());
+
+            var productPayload = new
+            {
+                Name = row.ItemName,
+                Description = row.ItemDescription,
+                Type= "Service",
+                IncomeAccountId= "54",
+                AssetAccountId= "81",
+                ExpenseAccountId= "80",
+                IncomeAccount= "Sales of Product Income",
+                AssetAccount= "Inventory Asset",
+                ExpenseAccount= "Cost of Goods Sold"
+
+            }
+        ;
+
+            var json = JsonConvert.SerializeObject(productPayload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            if (existingProduct != null)
+            {
+                var updateUrl = $"https://localhost:7241/api/Products/edit-product/{existingProduct.Id}";
+                var updateResponse = await httpClient.PutAsync(updateUrl, content);
+                updateResponse.EnsureSuccessStatusCode();
+            }
+            else
+            {
+                var addUrl = "https://localhost:7241/api/Products/add-product";
+                var addResponse = await httpClient.PostAsync(addUrl, content);
+                addResponse.EnsureSuccessStatusCode();
+            }
         }
     }
 
