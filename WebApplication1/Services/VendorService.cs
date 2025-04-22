@@ -97,7 +97,8 @@ namespace WebApplication1.Services
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            var apiUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/vendor?minorversion=75";
+            var baseUrl = _configuration["QuickBooks:BaseUrl"];
+            var apiUrl = $"{baseUrl}/{realmId}/vendor?minorversion=75";
             var response = await client.PostAsync(apiUrl, content);
 
             if (!response.IsSuccessStatusCode)
