@@ -248,14 +248,14 @@ public class CSVParseService
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        // Ensure all local data is refreshed
+        // Sync all necessary data first
         await httpClient.GetAsync("https://localhost:7241/api/Customer/fetch-customers-from-quickbooks");
         await httpClient.GetAsync("https://localhost:7241/api/Products/fetch-items-from-quickbooks");
         await httpClient.GetAsync("https://localhost:7241/api/InvoiceContoller/sync-invoices");
 
         var customers = await _context.Customers.ToListAsync();
         var products = await _context.Products.ToListAsync();
-        var localInvoices = await _context.Invoices.ToListAsync(); // assuming this table exists
+        var localInvoices = await _context.Invoices.ToListAsync(); // assuming this exists
 
         foreach (var row in rows)
         {
@@ -266,26 +266,27 @@ public class CSVParseService
 
             if (customer == null || product == null) continue;
 
-            // --- Step 1: Find local invoice by row.InvoiceNumber (assumed to be unique) ---
             var existingInvoice = localInvoices.FirstOrDefault(inv => inv.DocNumber == row.InvoiceNumber);
 
             var invoicePayload = new
             {
-                Line = new[]
+                customerId = customer.QuickBooksCustomerId.ToString(), 
+                invoiceNumber = row.InvoiceNumber,
+                date = DateTime.UtcNow,
+                dueDate = DateTime.UtcNow.AddDays(7),
+                lineItems = new[]
                 {
             new
             {
-                DetailType = "SalesItemLineDetail",
-                Amount = row.Quantity * row.Rate,
-                SalesItemLineDetail = new
-                {
-                    ItemRef = new { value = product.QuickBooksItemId.ToString() },
-                    Qty = row.Quantity,
-                    UnitPrice = row.Rate
-                }
+                id = product.Id.ToString(),
+                itemId = product.Id.ToString(),
+                description = row.ItemDescription ?? product.Description ?? "No description",
+                quantity = row.Quantity,
+                unitPrice = row.Rate,
+                amount = row.Quantity * row.Rate
             }
         },
-                CustomerRef = new { value = customer.QuickBooksCustomerId.ToString() }
+                notes = "Imported from CSV"
             };
 
             var json = JsonConvert.SerializeObject(invoicePayload);
@@ -293,31 +294,32 @@ public class CSVParseService
 
             if (existingInvoice != null)
             {
-                // --- Step 2: Update existing invoice in QBO & DB ---
-                var updateInvoiceUrl = $"https://localhost:7241/api/InvoiceContoller/update";
+                // Update invoice in DB & QBO
+                var updateInvoiceUrl = $"https://localhost:7241/api/InvoiceContoller/update-invoice/{existingInvoice.QuickBooksId}";
                 var updateResponse = await httpClient.PutAsync(updateInvoiceUrl, content);
 
                 if (!updateResponse.IsSuccessStatusCode)
                 {
                     var body = await updateResponse.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Failed to update invoice {existingInvoice.Id}: {body}");
+                    Console.WriteLine($"❌ Failed to update invoice {existingInvoice.Id}: {body}");
                     continue;
                 }
             }
             else
             {
-                // --- Step 3: Add new invoice in QBO & DB ---
+                // Add new invoice to DB & QBO
                 var addInvoiceUrl = $"https://localhost:7241/api/InvoiceContoller/add-invoice";
                 var addResponse = await httpClient.PostAsync(addInvoiceUrl, content);
 
                 if (!addResponse.IsSuccessStatusCode)
                 {
                     var body = await addResponse.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Failed to add invoice: {body}");
+                    Console.WriteLine($"❌ Failed to add invoice: {body}");
                     continue;
                 }
             }
         }
+
 
     }
 
