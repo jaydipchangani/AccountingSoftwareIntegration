@@ -109,8 +109,8 @@
   },
   {
     "ContainingType": "CSVParseController",
-    "Method": "UploadCsv",
-    "RelativePath": "api/CSVParse/upload",
+    "Method": "UploadCSVFile",
+    "RelativePath": "api/CSVParse/upload-csv",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,

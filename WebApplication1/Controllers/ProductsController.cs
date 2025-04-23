@@ -317,6 +317,7 @@ namespace WebApplication1.Controllers
                 var payload = new Dictionary<string, object>
                 {
                     ["Name"] = productDto.Name,
+                    ["Description"]=productDto.Description,
                     ["Type"] = productDto.Type,
                     ["IncomeAccountRef"] = new { value = productDto.IncomeAccountId },
                     ["UnitPrice"] = productDto.Price,

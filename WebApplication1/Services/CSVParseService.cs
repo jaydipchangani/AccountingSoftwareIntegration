@@ -195,7 +195,7 @@ public class CSVParseService
                     name = row.ItemName,
                     description = row.ItemDescription,
                     type = "Service",
-                    IncomeAccountId = "54",
+                    IncomeAccountId = "79",
                     AssetAccountId = "81",
                     ExpenseAccountId = "80",
                     IncomeAccount = "Sales of Product Income",
@@ -206,7 +206,7 @@ public class CSVParseService
                 var json = JsonConvert.SerializeObject(updatePayload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var updateUrl = $"https://localhost:7241/api/Products/edit-product/{existingProduct.Id}";
+                var updateUrl = $"https://localhost:7241/api/Products/edit-product/{existingProduct.QuickBooksItemId}";
                 var updateResponse = await httpClient.PutAsync(updateUrl, content);
                 updateResponse.EnsureSuccessStatusCode();
             }
@@ -219,7 +219,7 @@ public class CSVParseService
                     description = row.ItemDescription,
                     unitPrice = row.Rate,
                     type = "Service" ,
-                    IncomeAccountId = "54",
+                    IncomeAccountId = "79",
                     AssetAccountId= "81",
                     ExpenseAccountId= "80",
                     IncomeAccount= "Sales of Product Income",

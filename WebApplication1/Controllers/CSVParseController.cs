@@ -11,41 +11,50 @@ public class CSVParseController : ControllerBase
         _csvParseService = csvParseService;
     }
 
-    [HttpPost("upload")]
-    public async Task<IActionResult> UploadCsv(IFormFile file)
+    [HttpPost("upload-csv")]
+    public async Task<IActionResult> UploadCSVFile(IFormFile file)
     {
         if (file == null || file.Length == 0)
-        {
             return BadRequest(new { message = "No file uploaded." });
-        }
 
         var allowedExtensions = new[] { ".csv" };
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
         if (!allowedExtensions.Contains(extension))
-        {
             return BadRequest(new { message = "Only CSV files are allowed." });
-        }
 
         try
         {
+            // Parse and validate CSV data
             var (success, errors) = await _csvParseService.ParseAndSaveAsync(file);
 
             if (!success)
-            {
                 return BadRequest(new { message = "Validation failed.", errors });
+
+            try
+            {
+                await _csvParseService.SyncCustomersAsync();
+            }
+            catch (Exception customerEx)
+            {
+                return StatusCode(500, new { message = "Error while syncing customers.", error = customerEx.Message });
             }
 
-            
-            await _csvParseService.SyncCustomersAsync();
-            await _csvParseService.SyncProductsAsync();
-            return Ok("Products synced successfully from CSV.");
+            try
+            {
+                await _csvParseService.SyncProductsAsync();
+            }
+            catch (Exception productEx)
+            {
+                return StatusCode(500, new { message = "Error while syncing products.", error = productEx.Message });
+            }
+
+            return Ok(new { message = "CSV parsed and customers/products synced successfully." });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = ex.Message });
+            return StatusCode(500, new { message = "Unexpected error during file processing.", error = ex.Message });
         }
-
-
     }
+
 }
