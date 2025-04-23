@@ -10,6 +10,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using WebApplication1.Data;
 using WebApplication1.Models;
+using WebApplication1.Services;
 using static System.Net.WebRequestMethods;
 
 public class CSVParseService
@@ -17,19 +18,24 @@ public class CSVParseService
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly TokenService _tokenService;
 
     public CSVParseService(
         ApplicationDbContext context,
         IConfiguration configuration,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory,
+        TokenService tokenService)
     {
         _context = context;
         _configuration = configuration;
         _httpClientFactory = httpClientFactory;
+        _tokenService = tokenService;
     }
 
     public async Task<(bool Success, List<string> Errors)> ParseAndSaveAsync(IFormFile file)
     {
+        var token = await _tokenService.GetValidAccessTokenAsync();
+
         var errors = new List<string>();
 
         var qbToken = await _context.QuickBooksTokens
@@ -101,6 +107,8 @@ public class CSVParseService
 
     public async Task<List<SyncResult>> SyncCustomersAsync()
     {
+        var token = await _tokenService.GetValidAccessTokenAsync();
+
         var results = new List<SyncResult>();
         var rows = await _context.CSVParses.ToListAsync();
         if (rows == null || rows.Count == 0) return results;
@@ -169,6 +177,8 @@ public class CSVParseService
 
     public async Task SyncProductsAsync()
     {
+        var token = await _tokenService.GetValidAccessTokenAsync();
+
         var rows = await _context.CSVParses.ToListAsync();
         if (rows == null || rows.Count == 0) return;
 
@@ -244,6 +254,8 @@ public class CSVParseService
 
     public async Task SyncInvoicesAsync()
     {
+        var token = await _tokenService.GetValidAccessTokenAsync();
+
         var rows = await _context.CSVParses.ToListAsync();
         if (rows == null || rows.Count == 0) return;
 
@@ -270,7 +282,7 @@ public class CSVParseService
 
             if (existingInvoice != null)
             {
-                // 🔁 Update Invoice - use custom/local format
+                
                 var invoicePayload = new
                 {
                     customerId = customer.QuickBooksCustomerId.ToString(),
@@ -307,7 +319,7 @@ public class CSVParseService
                 continue;
             }
 
-            // ➕ Add Invoice - use QuickBooks-compliant structure
+            
             var qbInvoicePayload = new
             {
                 Line = new[]

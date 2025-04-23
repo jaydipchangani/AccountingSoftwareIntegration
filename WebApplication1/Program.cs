@@ -7,6 +7,7 @@ using WebApplication1.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddScoped<TokenService>();
 
 builder.Services.AddScoped<VendorSyncService>();
 builder.Services.AddScoped<VendorService>();
