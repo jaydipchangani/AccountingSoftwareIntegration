@@ -99,71 +99,72 @@ public class CSVParseService
     }
 
 
-    public async Task SyncCustomersAsync()
+    public async Task<List<SyncResult>> SyncCustomersAsync()
     {
+        var results = new List<SyncResult>();
         var rows = await _context.CSVParses.ToListAsync();
-        if (rows == null || rows.Count == 0) return;
+        if (rows == null || rows.Count == 0) return results;
 
         var httpClient = _httpClientFactory.CreateClient();
-
-        // Fetch latest customers
         var fetchResponse = await httpClient.GetAsync("https://localhost:7241/api/Customer/fetch-customers-from-quickbooks");
         if (!fetchResponse.IsSuccessStatusCode)
         {
-            var error = await fetchResponse.Content.ReadAsStringAsync();
-            throw new Exception($"Failed to fetch customers. Status: {fetchResponse.StatusCode}, Error: {error}");
+            throw new Exception("Failed to fetch customers from QuickBooks.");
         }
 
-
-        // 2. Get local customer list
         var customers = await _context.Customers.ToListAsync();
 
         foreach (var row in rows)
         {
             if (string.IsNullOrWhiteSpace(row.CustomerName)) continue;
 
-            var existingCustomer = customers
-                .FirstOrDefault(c => c.DisplayName?.Trim().ToLower() == row.CustomerName.Trim().ToLower());
-
-            var customerPayload = new
+            var result = new SyncResult { Identifier = row.CustomerName };
+            try
             {
-                displayName = row.CustomerName,
-                companyName = row.CustomerName,
-                email = row.CustomerEmail,
-                phone = "string",
-                billingLine1 = "string",
-                billingCity = "string",
-                billingState = "string",
-                billingPostalCode = "string",
-                billingCountry = "string"
-            }
-        ;
+                var existingCustomer = customers.FirstOrDefault(c =>
+                    c.DisplayName?.Trim().ToLower() == row.CustomerName.Trim().ToLower());
 
-            var json = JsonConvert.SerializeObject(customerPayload);
-            var jsonContent = new StringContent(json, Encoding.UTF8, "application/json");
-            if (existingCustomer != null)
-            {
-                var updateUrl = $"https://localhost:7241/api/Customer/update-customer/{existingCustomer.Id}";
-                var updateResponse = await httpClient.PutAsync(updateUrl, jsonContent);
-                if (!updateResponse.IsSuccessStatusCode)
+                var customerPayload = new
                 {
-                    var error = await updateResponse.Content.ReadAsStringAsync();
-                    throw new Exception($"Failed to update customer {row.CustomerName}. Status: {updateResponse.StatusCode}, Error: {error}");
-                }
-            }
-            else
-            {
-                var addUrl = "https://localhost:7241/api/Customer/add-customer";
-                var addResponse = await httpClient.PostAsync(addUrl, jsonContent);
-                if (!addResponse.IsSuccessStatusCode)
+                    displayName = row.CustomerName,
+                    companyName = row.CustomerName,
+                    email = row.CustomerEmail,
+                    phone = "string",
+                    billingLine1 = "string",
+                    billingCity = "string",
+                    billingState = "string",
+                    billingPostalCode = "string",
+                    billingCountry = "string"
+                };
+
+                var json = JsonConvert.SerializeObject(customerPayload);
+                var jsonContent = new StringContent(json, Encoding.UTF8, "application/json");
+
+                HttpResponseMessage response;
+                if (existingCustomer != null)
                 {
-                    var error = await addResponse.Content.ReadAsStringAsync();
-                    throw new Exception($"Failed to add customer {row.CustomerName}. Status: {addResponse.StatusCode}, Error: {error}");
+                    response = await httpClient.PutAsync($"https://localhost:7241/api/Customer/update-customer/{existingCustomer.Id}", jsonContent);
                 }
+                else
+                {
+                    response = await httpClient.PostAsync("https://localhost:7241/api/Customer/add-customer", jsonContent);
+                }
+
+                result.Success = response.IsSuccessStatusCode;
+                result.Message = result.Success ? "Synced successfully." : await response.Content.ReadAsStringAsync();
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Message = $"Exception: {ex.Message}";
             }
 
+            results.Add(result);
         }
+
+        return results;
     }
+
 
 
     public async Task SyncProductsAsync()
@@ -195,13 +196,13 @@ public class CSVParseService
                     id = existingProduct.Id.ToString(),
                     name = row.ItemName,
                     description = row.ItemDescription,
-                    type = "Service",
-                    IncomeAccountId = "79",
-                    AssetAccountId = "81",
-                    ExpenseAccountId = "80",
-                    IncomeAccount = "Sales of Product Income",
-                    AssetAccount = "Inventory Asset",
-                    ExpenseAccount = "Cost of Goods Sold",
+                    type = _configuration["ProductDefaults:Type"],
+                    IncomeAccountId = _configuration["ProductDefaults:IncomeAccountId"],
+                    AssetAccountId = _configuration["ProductDefaults:AssetAccountId"],
+                    ExpenseAccountId = _configuration["ProductDefaults:ExpenseAccountId"],
+                    IncomeAccount = _configuration["ProductDefaults:IncomeAccount"],
+                    AssetAccount = _configuration["ProductDefaults:AssetAccount"],
+                    ExpenseAccount = _configuration["ProductDefaults:ExpenseAccount"]
                 };
 
                 var json = JsonConvert.SerializeObject(updatePayload);
@@ -219,13 +220,13 @@ public class CSVParseService
                     name = row.ItemName,
                     description = row.ItemDescription,
                     unitPrice = row.Rate,
-                    type = "Service" ,
-                    IncomeAccountId = "79",
-                    AssetAccountId= "81",
-                    ExpenseAccountId= "80",
-                    IncomeAccount= "Sales of Product Income",
-                    AssetAccount= "Inventory Asset",
-                    ExpenseAccount= "Cost of Goods Sold",
+                    type = _configuration["ProductDefaults:Type"],
+                    IncomeAccountId = _configuration["ProductDefaults:IncomeAccountId"],
+                    AssetAccountId = _configuration["ProductDefaults:AssetAccountId"],
+                    ExpenseAccountId = _configuration["ProductDefaults:ExpenseAccountId"],
+                    IncomeAccount = _configuration["ProductDefaults:IncomeAccount"],
+                    AssetAccount = _configuration["ProductDefaults:AssetAccount"],
+                    ExpenseAccount = _configuration["ProductDefaults:ExpenseAccount"]
                 }
             ;
 
