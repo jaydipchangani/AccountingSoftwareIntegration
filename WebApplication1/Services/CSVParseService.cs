@@ -249,14 +249,13 @@ public class CSVParseService
 
         var httpClient = _httpClientFactory.CreateClient();
 
-        // Sync all necessary data first
         await httpClient.GetAsync("https://localhost:7241/api/Customer/fetch-customers-from-quickbooks");
         await httpClient.GetAsync("https://localhost:7241/api/Products/fetch-items-from-quickbooks");
         await httpClient.GetAsync("https://localhost:7241/api/InvoiceContoller/sync-invoices");
 
         var customers = await _context.Customers.ToListAsync();
         var products = await _context.Products.ToListAsync();
-        var localInvoices = await _context.Invoices.ToListAsync(); // assuming this exists
+        var localInvoices = await _context.Invoices.ToListAsync();
 
         foreach (var row in rows)
         {
@@ -269,59 +268,79 @@ public class CSVParseService
 
             var existingInvoice = localInvoices.FirstOrDefault(inv => inv.DocNumber == row.InvoiceNumber);
 
-            var invoicePayload = new
-            {
-                customerId = customer.QuickBooksCustomerId.ToString(), 
-                invoiceNumber = row.InvoiceNumber,
-                date = DateTime.UtcNow,
-                dueDate = DateTime.UtcNow.AddDays(7),
-                lineItems = new[]
-                {
-            new
-            {
-                id = product.Id.ToString(),
-                itemId = product.Id.ToString(),
-                description = row.ItemDescription ?? product.Description ?? "No description",
-                quantity = row.Quantity,
-                unitPrice = row.Rate,
-                amount = row.Quantity * row.Rate
-            }
-        },
-                notes = "Imported from CSV"
-            };
-
-            var json = JsonConvert.SerializeObject(invoicePayload);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
             if (existingInvoice != null)
             {
-                // Update invoice in DB & QBO
-                var updateInvoiceUrl = $"https://localhost:7241/api/InvoiceContoller/update-invoice/{existingInvoice.QuickBooksId}";
-                var updateResponse = await httpClient.PutAsync(updateInvoiceUrl, content);
+                // 🔁 Update Invoice - use custom/local format
+                var invoicePayload = new
+                {
+                    customerId = customer.QuickBooksCustomerId.ToString(),
+                    invoiceNumber = row.InvoiceNumber,
+                    date = DateTime.UtcNow,
+                    dueDate = DateTime.UtcNow.AddDays(7),
+                    lineItems = new[]
+                    {
+                    new
+                    {
+                        id = product.QuickBooksItemId.ToString(),
+                        itemId = product.QuickBooksItemId.ToString(),
+                        description = row.ItemDescription ?? product.Description ?? "No description",
+                        quantity = row.Quantity,
+                        unitPrice = row.Rate,
+                        amount = row.Quantity * row.Rate
+                    }
+                },
+                    notes = "Updated from CSV"
+                };
+
+                var json = JsonConvert.SerializeObject(invoicePayload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                var updateUrl = $"https://localhost:7241/api/InvoiceContoller/update-invoice/{existingInvoice.QuickBooksId}";
+
+                var updateResponse = await httpClient.PutAsync(updateUrl, content);
 
                 if (!updateResponse.IsSuccessStatusCode)
                 {
                     var body = await updateResponse.Content.ReadAsStringAsync();
                     Console.WriteLine($"❌ Failed to update invoice {existingInvoice.Id}: {body}");
-                    continue;
                 }
-            }
-            else
-            {
-                // Add new invoice to DB & QBO
-                var addInvoiceUrl = $"https://localhost:7241/api/InvoiceContoller/add-invoice";
-                var addResponse = await httpClient.PostAsync(addInvoiceUrl, content);
 
-                if (!addResponse.IsSuccessStatusCode)
+                continue;
+            }
+
+            // ➕ Add Invoice - use QuickBooks-compliant structure
+            var qbInvoicePayload = new
+            {
+                Line = new[]
                 {
-                    var body = await addResponse.Content.ReadAsStringAsync();
-                    Console.WriteLine($"❌ Failed to add invoice: {body}");
-                    continue;
+                new
+                {
+                    DetailType = "SalesItemLineDetail",
+                    Amount = row.Quantity * row.Rate,
+                    SalesItemLineDetail = new
+                    {
+                        ItemRef = new { value = product.QuickBooksItemId.ToString() },
+                        Qty = row.Quantity,
+                        UnitPrice = row.Rate
+                    }
                 }
+            },
+                CustomerRef = new { value = customer.QuickBooksCustomerId.ToString() }
+            };
+
+            var qbJson = JsonConvert.SerializeObject(qbInvoicePayload);
+            var qbContent = new StringContent(qbJson, Encoding.UTF8, "application/json");
+            var addUrl = $"https://localhost:7241/api/InvoiceContoller/add-invoice";
+
+            var addResponse = await httpClient.PostAsync(addUrl, qbContent);
+            await httpClient.GetAsync("https://localhost:7241/api/InvoiceContoller/sync-invoices");
+
+
+            if (!addResponse.IsSuccessStatusCode)
+            {
+                var body = await addResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ Failed to add invoice: {body}");
             }
         }
-
-
     }
 
 }
