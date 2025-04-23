@@ -53,3 +53,23 @@
 
             public ICollection<InvoiceLineItem> LineItems { get; set; } = new List<InvoiceLineItem>();
         }
+
+public class UpdateInvoiceRequest
+{
+    public string CustomerId { get; set; }
+    public string InvoiceNumber { get; set; }
+    public DateTime? Date { get; set; }
+    public DateTime? DueDate { get; set; }
+    public List<UpdateLineItemRequest> LineItems { get; set; }
+    public string Notes { get; set; }
+}
+
+public class UpdateLineItemRequest
+{
+    public string Id { get; set; } // Optional, present for existing line items
+    public string ItemId { get; set; }
+    public string Description { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal Amount { get; set; }
+}

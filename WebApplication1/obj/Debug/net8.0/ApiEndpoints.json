@@ -303,14 +303,19 @@
   {
     "ContainingType": "WebApplication1.Controllers.InvoiceContoller",
     "Method": "UpdateInvoice",
-    "RelativePath": "api/InvoiceContoller/update",
-    "HttpMethod": "POST",
+    "RelativePath": "api/InvoiceContoller/update-invoice/{id}",
+    "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "invoicePayload",
-        "Type": "System.Text.Json.JsonElement",
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "UpdateInvoiceRequest",
         "IsRequired": true
       }
     ],

@@ -458,52 +458,98 @@ namespace WebApplication1.Controllers
 
 
 
-        [HttpPost("update")]
-        public async Task<IActionResult> UpdateInvoice([FromBody] JsonElement invoicePayload)
+       [HttpPut("update-invoice/{id}")]
+        public async Task<IActionResult> UpdateInvoice(string id, [FromBody] UpdateInvoiceRequest request)
         {
+            if (string.IsNullOrEmpty(id))
+                return BadRequest("Invoice ID is required.");
+
             try
             {
-        
-                var company = await _dbContext.QuickBooksTokens.FirstOrDefaultAsync();
-                if (company == null)
-                {
-                    _logger.LogError("Company authentication data not found.");
-                    return BadRequest("Company authentication data not found.");
-                }
+                // 1. Get QuickBooks auth info from DB
+                var tokenRecord = await _dbContext.QuickBooksTokens
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefaultAsync();
 
-                string accessToken = company.AccessToken;
-                string realmId = company.RealmId;
+                if (tokenRecord == null)
+                    return NotFound("No QuickBooks token found.");
 
+                var accessToken = tokenRecord.AccessToken;
+                var realmId = tokenRecord.RealmId;
 
-                _httpClient.BaseAddress = new Uri("https://sandbox-quickbooks.api.intuit.com/");
+                if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(realmId))
+                    return BadRequest("Missing access token or realm ID.");
+
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                _httpClient.DefaultRequestHeaders.Accept.Clear();
                 _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+                // 2. Fetch existing invoice to get SyncToken
+                var getUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/invoice/{id}?minorversion=75";
+                var getResponse = await _httpClient.GetAsync(getUrl);
+                var getContent = await getResponse.Content.ReadAsStringAsync();
 
-                string apiUrl = $"/v3/company/{realmId}/invoice?minorversion=75";
-                var jsonString = JsonSerializer.Serialize(invoicePayload);
-                var content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.PostAsync(apiUrl, content);
-                var responseString = await response.Content.ReadAsStringAsync();
-
-                if (response.IsSuccessStatusCode)
+                if (!getResponse.IsSuccessStatusCode)
                 {
-                    var responseJson = JsonDocument.Parse(responseString).RootElement;
-                    return Ok(responseJson);
+                    _logger.LogError("Failed to fetch invoice: {Content}", getContent);
+                    return StatusCode((int)getResponse.StatusCode, getContent);
                 }
-                else
+
+                using var doc = JsonDocument.Parse(getContent);
+                var syncToken = doc.RootElement.GetProperty("Invoice").GetProperty("SyncToken").GetString();
+
+                // 3. Construct payload for update
+                var lineItems = request.LineItems.Select(item => new
                 {
-                    _logger.LogError($"QuickBooks API error: {responseString}");
-                    return StatusCode((int)response.StatusCode, $"QuickBooks API error: {responseString}");
+                    Id = item.Id,
+                    DetailType = "SalesItemLineDetail",
+                    Amount = item.Amount,
+                    Description = item.Description,
+                    SalesItemLineDetail = new
+                    {
+                        ItemRef = new { value = item.ItemId },
+                        Qty = item.Quantity,
+                        UnitPrice = item.UnitPrice
+                    }
+                });
+
+                var updatePayload = new
+                {
+                    Id = id,
+                    SyncToken = syncToken,
+                    sparse = true,
+                    CustomerRef = new { value = request.CustomerId },
+                    Line = lineItems,
+                    DocNumber = request.InvoiceNumber,
+                    TxnDate = request.Date?.ToString("yyyy-MM-dd"),
+                    DueDate = request.DueDate?.ToString("yyyy-MM-dd"),
+                    PrivateNote = request.Notes
+                };
+
+                var jsonBody = JsonSerializer.Serialize(updatePayload);
+                var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+                // 4. Send update request
+                var updateUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/invoice?minorversion=75";
+                var updateResponse = await _httpClient.PostAsync(updateUrl, content);
+                var updateContent = await updateResponse.Content.ReadAsStringAsync();
+
+                if (!updateResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogError("Invoice update failed: {Content}", updateContent);
+                    return StatusCode((int)updateResponse.StatusCode, updateContent);
                 }
+
+                var updatedInvoiceJson = JsonDocument.Parse(updateContent).RootElement;
+                return Ok(updatedInvoiceJson);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Server error: {ex.Message}");
+                _logger.LogError(ex, "Error while updating invoice.");
                 return StatusCode(500, $"Server error: {ex.Message}");
             }
         }
+
 
 
 

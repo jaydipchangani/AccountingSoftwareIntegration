@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Globalization;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using WebApplication1.Data;
@@ -240,58 +241,84 @@ public class CSVParseService
 
 
 
-    //public async Task SyncInvoicesAsync()
-    //{
-    //    var rows = await _context.CSVParses.ToListAsync();
-    //    if (rows == null || rows.Count == 0) return;
+    public async Task SyncInvoicesAsync()
+    {
+        var rows = await _context.CSVParses.ToListAsync();
+        if (rows == null || rows.Count == 0) return;
 
-    //    var httpClient = _httpClientFactory.CreateClient();
+        var httpClient = _httpClientFactory.CreateClient();
 
-    //    // Ensure all local data is refreshed
-    //    var customerFetch = await httpClient.GetAsync("https://localhost:7241/api/Customer/fetch-customers-from-quickbooks");
-    //    customerFetch.EnsureSuccessStatusCode();
+        // Ensure all local data is refreshed
+        await httpClient.GetAsync("https://localhost:7241/api/Customer/fetch-customers-from-quickbooks");
+        await httpClient.GetAsync("https://localhost:7241/api/Products/fetch-items-from-quickbooks");
+        await httpClient.GetAsync("https://localhost:7241/api/InvoiceContoller/sync-invoices");
 
-    //    var productFetch = await httpClient.GetAsync("https://localhost:7241/api/Products/fetch-items-from-quickbooks");
-    //    productFetch.EnsureSuccessStatusCode();
+        var customers = await _context.Customers.ToListAsync();
+        var products = await _context.Products.ToListAsync();
+        var localInvoices = await _context.Invoices.ToListAsync(); // assuming this table exists
 
-    //    var customers = await _context.Customers.ToListAsync();
-    //    var products = await _context.Products.ToListAsync();
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.CustomerName) || string.IsNullOrWhiteSpace(row.ItemName)) continue;
 
-    //    foreach (var row in rows)
-    //    {
-    //        if (string.IsNullOrWhiteSpace(row.CustomerName) || string.IsNullOrWhiteSpace(row.ItemName)) continue;
+            var customer = customers.FirstOrDefault(c => c.DisplayName?.Trim().ToLower() == row.CustomerName.Trim().ToLower());
+            var product = products.FirstOrDefault(p => p.Name?.Trim().ToLower() == row.ItemName.Trim().ToLower());
 
-    //        var customer = customers.FirstOrDefault(c => c.DisplayName?.Trim().ToLower() == row.CustomerName.Trim().ToLower());
-    //        var product = products.FirstOrDefault(p => p.Name?.Trim().ToLower() == row.ItemName.Trim().ToLower());
+            if (customer == null || product == null) continue;
 
-    //        if (customer == null || product == null) continue;
+            // --- Step 1: Find local invoice by row.InvoiceNumber (assumed to be unique) ---
+            var existingInvoice = localInvoices.FirstOrDefault(inv => inv.DocNumber == row.InvoiceNumber);
 
-    //        var invoicePayload = new
-    //        {
-    //            Line = new[]
-    //            {
-    //            new
-    //            {
-    //                DetailType = "SalesItemLineDetail",
-    //                Amount = row.Quantity * row.Rate,
-    //                SalesItemLineDetail = new
-    //                {
-    //                    ItemRef = new { value = product.Id.ToString() },
-    //                    Qty = row.Quantity,
-    //                    UnitPrice = row.Rate
-    //                }
-    //            }
-    //        },
-    //            CustomerRef = new { value = customer.Id.ToString() }
-    //        };
+            var invoicePayload = new
+            {
+                Line = new[]
+                {
+            new
+            {
+                DetailType = "SalesItemLineDetail",
+                Amount = row.Quantity * row.Rate,
+                SalesItemLineDetail = new
+                {
+                    ItemRef = new { value = product.QuickBooksItemId.ToString() },
+                    Qty = row.Quantity,
+                    UnitPrice = row.Rate
+                }
+            }
+        },
+                CustomerRef = new { value = customer.QuickBooksCustomerId.ToString() }
+            };
 
-    //        var json = JsonConvert.SerializeObject(invoicePayload);
-    //        var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var json = JsonConvert.SerializeObject(invoicePayload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-    //        var addInvoiceUrl = "https://localhost:7241/api/InvoiceController/add-invoice";
-    //        var response = await httpClient.PostAsync(addInvoiceUrl, content);
-    //        response.EnsureSuccessStatusCode();
-    //    }
-    //}
+            if (existingInvoice != null)
+            {
+                // --- Step 2: Update existing invoice in QBO & DB ---
+                var updateInvoiceUrl = $"https://localhost:7241/api/InvoiceContoller/update";
+                var updateResponse = await httpClient.PutAsync(updateInvoiceUrl, content);
+
+                if (!updateResponse.IsSuccessStatusCode)
+                {
+                    var body = await updateResponse.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Failed to update invoice {existingInvoice.Id}: {body}");
+                    continue;
+                }
+            }
+            else
+            {
+                // --- Step 3: Add new invoice in QBO & DB ---
+                var addInvoiceUrl = $"https://localhost:7241/api/InvoiceContoller/add-invoice";
+                var addResponse = await httpClient.PostAsync(addInvoiceUrl, content);
+
+                if (!addResponse.IsSuccessStatusCode)
+                {
+                    var body = await addResponse.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Failed to add invoice: {body}");
+                    continue;
+                }
+            }
+        }
+
+    }
 
 }

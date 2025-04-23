@@ -49,7 +49,16 @@ public class CSVParseController : ControllerBase
                 return StatusCode(500, new { message = "Error while syncing products.", error = productEx.Message });
             }
 
-            return Ok(new { message = "CSV parsed and customers/products synced successfully." });
+            try
+            {
+                await _csvParseService.SyncInvoicesAsync();
+            }
+            catch (Exception InvoiceEx)
+            {
+                return StatusCode(500, new { message = "Error while syncing Invoice.", error = InvoiceEx.Message });
+            }
+
+            return Ok(new { message = "CSV parsed and synced successfully." });
         }
         catch (Exception ex)
         {
