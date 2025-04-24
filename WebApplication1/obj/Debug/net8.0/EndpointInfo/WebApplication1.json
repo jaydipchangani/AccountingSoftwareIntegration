@@ -716,7 +716,7 @@
         }
       }
     },
-    "/api/QuickBooks/fetch-from-quickbooks": {
+    "/api/QuickBooks/fetch-chart-of-accounts-from-quickbooks": {
       "get": {
         "tags": [
           "QuickBooks"
@@ -951,6 +951,46 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/XeroAuth/login": {
+      "get": {
+        "tags": [
+          "XeroAuth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/XeroAuth/callback": {
+      "get": {
+        "tags": [
+          "XeroAuth"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }

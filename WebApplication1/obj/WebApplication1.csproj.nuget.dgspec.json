@@ -59,6 +59,10 @@
               "target": "Package",
               "version": "[8.0.14, )"
             },
+            "Microsoft.AspNetCore.Authentication.OAuth": {
+              "target": "Package",
+              "version": "[2.3.0, )"
+            },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.14, )"
@@ -72,6 +76,10 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[8.0.14, )"
+            },
+            "Microsoft.IdentityModel.Logging": {
+              "target": "Package",
+              "version": "[8.8.0, )"
             },
             "Newtonsoft.Json": {
               "target": "Package",

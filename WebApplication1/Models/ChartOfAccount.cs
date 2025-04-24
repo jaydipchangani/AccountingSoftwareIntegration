@@ -33,7 +33,7 @@ namespace WebApplication1.Models
         public CurrencyRef CurrencyRef { get; set; }
 
         public string CurrencyValue { get; set; }
-        public string CurrencyName { get; set; }
+        public string? CurrencyName { get; set; }
 
         public string QuickBooksUserId { get; set; }
         public DateTime CreatedAt { get; set; }

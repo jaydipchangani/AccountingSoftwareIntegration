@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebApplication1.Models;
+using WebApplication1.Models.Xero;
 
 namespace WebApplication1.Data
 {
@@ -24,6 +25,10 @@ namespace WebApplication1.Data
         public DbSet<Item> Items { get; set; }
 
         public DbSet<CSVParse> CSVParses { get; set; }
+
+        public DbSet<XeroToken> XeroTokens { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Add index constraints

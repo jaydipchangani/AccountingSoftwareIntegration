@@ -417,6 +417,16 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.QuickBooksController",
+    "Method": "FetchChartOfAccountsFromQuickBooks",
+    "RelativePath": "api/QuickBooks/fetch-chart-of-accounts-from-quickbooks",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.QuickBooksController",
     "Method": "FetchChartOfAccountsFromDbPaginated",
     "RelativePath": "api/QuickBooks/fetch-from-db-paginated",
     "HttpMethod": "GET",
@@ -439,16 +449,6 @@
         "IsRequired": false
       }
     ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.QuickBooksController",
-    "Method": "FetchChartOfAccountsFromQuickBooks",
-    "RelativePath": "api/QuickBooks/fetch-from-quickbooks",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -576,6 +576,37 @@
     "ContainingType": "VendorController",
     "Method": "SyncVendors",
     "RelativePath": "api/Vendor/sync",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "XeroAuthController",
+    "Method": "Callback",
+    "RelativePath": "api/XeroAuth/callback",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "code",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "state",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "XeroAuthController",
+    "Method": "Login",
+    "RelativePath": "api/XeroAuth/login",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,

@@ -66,7 +66,7 @@ namespace WebApplication1.Controllers
                 if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(realmId))
                     return BadRequest("Missing access token or realm ID.");
 
-                _logger.LogInformation("Fetching item data from QuickBooks API.");
+                _logger.LogInformation("Fetching items from QuickBooks API.");
 
                 var url = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/query?query=SELECT * FROM Item";
 
@@ -80,7 +80,6 @@ namespace WebApplication1.Controllers
                 if (!response.IsSuccessStatusCode)
                     return StatusCode((int)response.StatusCode, json);
 
-                //  Ensure your parser populates IncomeAccountId, AssetAccountId, ExpenseAccountId too!
                 var parsedItems = ParseItemData(json, tokenRecord.QuickBooksUserId);
 
                 var strategy = _dbContext.Database.CreateExecutionStrategy();
@@ -93,16 +92,15 @@ namespace WebApplication1.Controllers
                     {
                         foreach (var item in parsedItems)
                         {
-                            var existingItem = await _dbContext.Products
-                                .FirstOrDefaultAsync(p => p.QuickBooksItemId == item.QuickBooksItemId);
+                            var exists = await _dbContext.Products
+                                .AnyAsync(p => p.QuickBooksItemId == item.QuickBooksItemId);
 
-                            if (existingItem != null)
+                            if (exists)
                             {
                                 _logger.LogInformation("Item with QuickBooksItemId {Id} already exists. Skipping.", item.QuickBooksItemId);
                                 continue;
                             }
 
-                            // ✅ Validate critical required fields
                             if (string.IsNullOrEmpty(item.Name) ||
                                 string.IsNullOrEmpty(item.Type) ||
                                 string.IsNullOrEmpty(item.IncomeAccount) ||
@@ -120,7 +118,7 @@ namespace WebApplication1.Controllers
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Transaction failed. Rolling back.");
+                        _logger.LogError(ex, "Error during item import transaction. Rolling back.");
                         await transaction.RollbackAsync();
                         throw;
                     }
@@ -134,6 +132,7 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, $"Error fetching items from QuickBooks: {ex.Message} {(ex.InnerException?.Message ?? "")}");
             }
         }
+
 
 
         private List<Product> ParseItemData(string json, string quickBooksUserId)

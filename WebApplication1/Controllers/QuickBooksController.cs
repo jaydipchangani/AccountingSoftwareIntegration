@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -79,7 +80,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpGet("fetch-from-quickbooks")]
+        [HttpGet("fetch-chart-of-accounts-from-quickbooks")]
         public async Task<IActionResult> FetchChartOfAccountsFromQuickBooks()
         {
             try
@@ -97,9 +98,10 @@ namespace WebApplication1.Controllers
                 if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(realmId))
                     return BadRequest("Missing access token or realm ID.");
 
-                _logger.LogInformation("Fetching data from QuickBooks API.");
+                _logger.LogInformation("Fetching Chart of Accounts from QuickBooks API.");
 
                 var url = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/query?query=SELECT * FROM Account";
+
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
                 httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -110,103 +112,124 @@ namespace WebApplication1.Controllers
                 if (!response.IsSuccessStatusCode)
                     return StatusCode((int)response.StatusCode, json);
 
-                var parsedAccounts = ParseAccountData(json, tokenRecord.QuickBooksUserId);
+                var accounts = new List<ChartOfAccount>();
 
-                using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+                var jsonDoc = JsonDocument.Parse(json);
+                var root = jsonDoc.RootElement;
+
+                if (root.TryGetProperty("QueryResponse", out var queryResponse) &&
+                    queryResponse.TryGetProperty("Account", out var accountArray))
                 {
+                    foreach (var account in accountArray.EnumerateArray())
+                    {
+                        string id = account.GetProperty("Id").ValueKind == JsonValueKind.Number
+                            ? account.GetProperty("Id").GetInt32().ToString()
+                            : account.GetProperty("Id").GetString();
+
+                        var currencyValue = account.TryGetProperty("CurrencyRef", out var currencyRef) &&
+                                            currencyRef.TryGetProperty("value", out var curValue)
+                                            ? curValue.GetString()
+                                            : "USD";
+
+                        var currencyName = account.TryGetProperty("CurrencyRef", out var currencyRef2) &&
+                                           currencyRef2.TryGetProperty("name", out var curName)
+                                           ? curName.GetString()
+                                           : null;
+
+                        var balance = account.TryGetProperty("CurrentBalance", out var balanceProp) &&
+                                      balanceProp.ValueKind == JsonValueKind.Number
+                            ? balanceProp.GetDecimal()
+                            : 0.0m;
+
+                        var newAccount = new ChartOfAccount
+                        {
+                            QuickBooksAccountId = id,
+                            Name = account.GetProperty("Name").GetString(),
+                            AccountType = account.GetProperty("AccountType").GetString(),
+                            AccountSubType = account.GetProperty("AccountSubType").GetString(),
+                            Classification = account.TryGetProperty("Classification", out var classProp) ? classProp.GetString() : null,
+                            CurrentBalance = balance,
+                            CurrencyValue = currencyValue,
+                            CurrencyName = currencyName,
+                            QuickBooksUserId = tokenRecord.QuickBooksUserId,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        accounts.Add(newAccount);
+                    }
+                }
+
+                var strategy = _dbContext.Database.CreateExecutionStrategy();
+                await strategy.ExecuteAsync(async () =>
+                {
+                    await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
                     try
                     {
-                        foreach (var account in parsedAccounts)
-                        {
-                            // Check if the account already exists by QuickBooksAccountId
-                            var existingAccount = await _dbContext.ChartOfAccounts
-                                .FirstOrDefaultAsync(c => c.QuickBooksAccountId == account.QuickBooksAccountId);
-
-                            if (existingAccount != null)
-                            {
-                                // Update the existing account
-                                _dbContext.Entry(existingAccount).CurrentValues.SetValues(account);
-                            }
-                            else
-                            {
-                                // Insert a new account if it doesn't exist
-                                await _dbContext.ChartOfAccounts.AddAsync(account);
-                            }
-                        }
-
-                        // Save the changes
+                        _dbContext.ChartOfAccounts.RemoveRange(_dbContext.ChartOfAccounts);
                         await _dbContext.SaveChangesAsync();
 
-                        // Commit the transaction
-                        await transaction.CommitAsync();
+                        await _dbContext.ChartOfAccounts.AddRangeAsync(accounts);
+                        await _dbContext.SaveChangesAsync();
 
-                        return Ok(parsedAccounts);
+                        await transaction.CommitAsync();
                     }
                     catch (Exception ex)
                     {
-                        // Rollback if an error occurs
+                        _logger.LogError(ex, "Transaction failed. Rolling back.");
                         await transaction.RollbackAsync();
-                        return StatusCode(500, $"Error processing QuickBooks data: {ex.Message}");
+                        throw;
                     }
-                }
+                });
+
+                return Ok(accounts);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error fetching Chart of Accounts.");
                 return StatusCode(500, $"Error fetching accounts from QuickBooks: {ex.Message}");
             }
         }
+
+
+
 
         private List<ChartOfAccount> ParseAccountData(string json, string quickBooksUserId)
         {
             var result = new List<ChartOfAccount>();
 
-            using (JsonDocument document = JsonDocument.Parse(json))
+            using var document = JsonDocument.Parse(json);
+
+            var accounts = document.RootElement
+                .GetProperty("QueryResponse")
+                .GetProperty("Account")
+                .EnumerateArray();
+
+            foreach (var account in accounts)
             {
-                var root = document.RootElement;
+                var currencyRef = account.TryGetProperty("CurrencyRef", out var currencyRefElement)
+                    ? currencyRefElement.GetProperty("value").GetString()
+                    : "USD"; // Set a default value or fallback
 
-                if (root.TryGetProperty("QueryResponse", out JsonElement queryResponse) &&
-                    queryResponse.TryGetProperty("Account", out JsonElement accounts))
+                var chartOfAccount = new ChartOfAccount
                 {
-                    foreach (JsonElement acc in accounts.EnumerateArray())
-                    {
-                        var account = new ChartOfAccount
-                        {
-                            QuickBooksAccountId = GetJsonPropertyValue(acc, "Id"),
-                            Name = GetJsonPropertyValue(acc, "Name"),
-                            AccountType = GetJsonPropertyValue(acc, "AccountType"),
-                            AccountSubType = GetJsonPropertyValue(acc, "AccountSubType"),
-                            Classification = GetJsonPropertyValue(acc, "Classification"),
-                            QuickBooksUserId = quickBooksUserId,
-                            CreatedAt = DateTime.UtcNow
-                        };
+                    QuickBooksAccountId = account.GetProperty("Id").GetString(),
+                    Name = account.GetProperty("Name").GetString(),
+                    AccountType = account.TryGetProperty("AccountType", out var type) ? type.GetString() : null,
+                    AccountSubType = account.TryGetProperty("AccountSubType", out var subType) ? subType.GetString() : null,
+                    //Description = account.TryGetProperty("Description", out var desc) ? desc.GetString() : null,
+                    //Active = account.TryGetProperty("Active", out var active) && active.GetBoolean(),
+                    Classification = account.TryGetProperty("Classification", out var classification) ? classification.GetString() : null,
+                    QuickBooksUserId = quickBooksUserId,
+                    CurrencyValue = currencyRef // ✅ Ensure it's never null
+                };
 
-                        // Handle nullable decimal
-                        if (acc.TryGetProperty("CurrentBalance", out JsonElement balanceElement) &&
-                            balanceElement.ValueKind != JsonValueKind.Null)
-                        {
-                            account.CurrentBalance = balanceElement.GetDecimal();
-                        }
-
-                        // Handle CurrencyRef
-                        if (acc.TryGetProperty("CurrencyRef", out JsonElement currencyRef))
-                        {
-                            //account.CurrencyRef = new CurrencyRef
-                            //{
-                            //    Value = GetJsonPropertyValue(currencyRef, "value"),
-                            //    Name = GetJsonPropertyValue(currencyRef, "name")
-                            //};
-
-                            // Update the flattened properties
-                            account.UpdateCurrencyRefProperties();
-                        }
-
-                        result.Add(account);
-                    }
-                }
+                result.Add(chartOfAccount);
             }
 
             return result;
         }
+
 
         private string GetJsonPropertyValue(JsonElement element, string propertyName)
         {

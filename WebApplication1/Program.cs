@@ -14,6 +14,9 @@ builder.Services.AddScoped<VendorService>();
 builder.Services.AddScoped<BillService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CSVParseService>();
+builder.Services.AddHttpClient<XeroAuthService>();
+builder.Services.AddScoped<XeroAuthService>();
+
 
 
 
