@@ -152,7 +152,8 @@ namespace WebApplication1.Controllers
                             CurrencyValue = currencyValue,
                             CurrencyName = currencyName,
                             QuickBooksUserId = tokenRecord.QuickBooksUserId,
-                            CreatedAt = DateTime.UtcNow
+                            CreatedAt = DateTime.UtcNow,
+                            Company = "QBO"
                         };
 
                         accounts.Add(newAccount);
