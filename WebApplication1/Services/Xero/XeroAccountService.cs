@@ -55,7 +55,7 @@ public class XeroAccountService
                 AccountType = acc.GetProperty("Type").GetString(),
                 AccountSubType = acc.TryGetProperty("BankAccountType", out var subtype) ? subtype.GetString() : null,
                 Classification = acc.TryGetProperty("Class", out var cls) ? cls.GetString() : null,
-                CurrentBalance = null,
+                CurrentBalance = 0,
                 QuickBooksUserId = tenantId,
                 Company = "Xero",
                 CurrencyValue = "USD", // Adjust if needed

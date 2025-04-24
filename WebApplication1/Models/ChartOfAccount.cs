@@ -8,7 +8,7 @@ namespace WebApplication1.Models
     {
         [Key]
         [JsonPropertyName("internalId")]
-        public int Id { get; set; }
+        public int Id { get; set; } 
 
         [JsonPropertyName("id")]
         public string QuickBooksAccountId { get; set; }

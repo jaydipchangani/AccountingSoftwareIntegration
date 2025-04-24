@@ -427,28 +427,12 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.QuickBooksController",
-    "Method": "FetchChartOfAccountsFromDbPaginated",
-    "RelativePath": "api/QuickBooks/fetch-from-db-paginated",
+    "Method": "FetchChartOfAccountsFromDb",
+    "RelativePath": "api/QuickBooks/fetch-from-db",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
-    "Parameters": [
-      {
-        "Name": "page",
-        "Type": "System.Int32",
-        "IsRequired": false
-      },
-      {
-        "Name": "pageSize",
-        "Type": "System.Int32",
-        "IsRequired": false
-      },
-      {
-        "Name": "searchTerm",
-        "Type": "System.String",
-        "IsRequired": false
-      }
-    ],
+    "Parameters": [],
     "ReturnTypes": []
   },
   {

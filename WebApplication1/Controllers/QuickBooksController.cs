@@ -25,59 +25,37 @@ namespace WebApplication1.Controllers
             _logger = logger;
         }
 
-        [HttpGet("fetch-from-db-paginated")]
-        public async Task<IActionResult> FetchChartOfAccountsFromDbPaginated(
-        int page = 1,
-        int pageSize = 10,
-        string? searchTerm = null)
-        {
-            try
-            {
-                var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+       [HttpGet("fetch-from-db")]
+public async Task<IActionResult> FetchChartOfAccountsFromDb()
+{
+    try
+    {
+        // Fetch the latest QuickBooks token
+        var tokenRecord = await _dbContext.QuickBooksTokens
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
 
-                if (tokenRecord == null)
-                    return NotFound("No QuickBooks token found.");
+        // If no token is found, return an error
+        if (tokenRecord == null)
+            return NotFound("No QuickBooks token found.");
 
-                var query = _dbContext.ChartOfAccounts
-                    .Where(c => c.QuickBooksUserId == tokenRecord.QuickBooksUserId);
+        // prb here
+        var query = _dbContext.ChartOfAccounts
+            .Where(c => c.Id == tokenRecord.Id);
 
-                if (!string.IsNullOrWhiteSpace(searchTerm))
-                {
-                    string likeTerm = $"%{searchTerm}%";
-                    query = query.Where(c =>
-                        EF.Functions.Like(c.Name, likeTerm) ||
-                        EF.Functions.Like(c.AccountType, likeTerm) ||
-                        (c.AccountSubType != null && EF.Functions.Like(c.AccountSubType, likeTerm)) ||
-                        (c.Classification != null && EF.Functions.Like(c.Classification, likeTerm))
-                    );
-                }
+        // Fetch all data from the database (no filtering, no pagination)
+        var allData = await query.OrderBy(c => c.Name).ToListAsync();
 
-                var totalRecords = await query.CountAsync();
+        // Return the data to the frontend
+        return Ok(allData);
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, $"Error fetching chart of accounts: {ex.Message}");
+    }
+}
 
-                var pagedData = await query
-                    .OrderBy(c => c.Name)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
 
-                var response = new
-                {
-                    TotalRecords = totalRecords,
-                    TotalPages = (int)Math.Ceiling((double)totalRecords / pageSize),
-                    CurrentPage = page,
-                    PageSize = pageSize,
-                    Data = pagedData
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error fetching paginated accounts: {ex.Message}");
-            }
-        }
 
 
         [HttpGet("fetch-chart-of-accounts-from-quickbooks")]
@@ -193,7 +171,6 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, $"Error fetching accounts from QuickBooks: {ex.Message}");
             }
         }
-
 
 
 
