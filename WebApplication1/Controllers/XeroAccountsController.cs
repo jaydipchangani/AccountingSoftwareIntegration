@@ -11,11 +11,18 @@ public class XeroAccountsController : ControllerBase
     {
         _xeroAccountService = xeroAccountService;
     }
-
-    [HttpGet("fetch")]
-    public async Task<IActionResult> FetchAccounts([FromQuery] string accessToken, [FromQuery] string tenantId)
+    [HttpGet("fetch-chart-of-accounts-from-xero")]
+    public async Task<IActionResult> FetchAccountsFromXero()
     {
-        var accounts = await _xeroAccountService.FetchAccountsAsync(accessToken, tenantId);
-        return Ok(accounts);
+        try
+        {
+            var accounts = await _xeroAccountService.FetchAccountsFromXeroAsync();
+            return Ok(accounts);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
     }
+
 }

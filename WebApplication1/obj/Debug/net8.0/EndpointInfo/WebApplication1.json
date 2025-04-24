@@ -955,26 +955,10 @@
         }
       }
     },
-    "/api/XeroAccounts/fetch": {
+    "/api/XeroAccounts/fetch-chart-of-accounts-from-xero": {
       "get": {
         "tags": [
           "XeroAccounts"
-        ],
-        "parameters": [
-          {
-            "name": "accessToken",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tenantId",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "responses": {
           "200": {

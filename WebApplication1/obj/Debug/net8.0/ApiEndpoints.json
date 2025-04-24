@@ -584,23 +584,12 @@
   },
   {
     "ContainingType": "XeroAccountsController",
-    "Method": "FetchAccounts",
-    "RelativePath": "api/XeroAccounts/fetch",
+    "Method": "FetchAccountsFromXero",
+    "RelativePath": "api/XeroAccounts/fetch-chart-of-accounts-from-xero",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
-    "Parameters": [
-      {
-        "Name": "accessToken",
-        "Type": "System.String",
-        "IsRequired": false
-      },
-      {
-        "Name": "tenantId",
-        "Type": "System.String",
-        "IsRequired": false
-      }
-    ],
+    "Parameters": [],
     "ReturnTypes": []
   },
   {

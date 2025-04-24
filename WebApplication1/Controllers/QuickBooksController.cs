@@ -167,8 +167,10 @@ namespace WebApplication1.Controllers
 
                     try
                     {
-                        _dbContext.ChartOfAccounts.RemoveRange(_dbContext.ChartOfAccounts);
-                        await _dbContext.SaveChangesAsync();
+                       
+
+                        _dbContext.ChartOfAccounts.RemoveRange(_dbContext.ChartOfAccounts.Where(c => c.Company == "QBO"));
+                      
 
                         await _dbContext.ChartOfAccounts.AddRangeAsync(accounts);
                         await _dbContext.SaveChangesAsync();
