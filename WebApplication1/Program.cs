@@ -16,6 +16,8 @@ builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CSVParseService>();
 builder.Services.AddHttpClient<XeroAuthService>();
 builder.Services.AddScoped<XeroAuthService>();
+builder.Services.AddHttpClient<XeroAccountService>(); // registers with HttpClient
+builder.Services.AddScoped<XeroAccountService>();      // registers as a scoped service
 
 
 

@@ -955,6 +955,34 @@
         }
       }
     },
+    "/api/XeroAccounts/fetch": {
+      "get": {
+        "tags": [
+          "XeroAccounts"
+        ],
+        "parameters": [
+          {
+            "name": "accessToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/XeroAuth/login": {
       "get": {
         "tags": [
