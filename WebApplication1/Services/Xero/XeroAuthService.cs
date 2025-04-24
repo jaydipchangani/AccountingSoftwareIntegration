@@ -80,21 +80,46 @@ public class XeroAuthService
 
         var tokenData = JsonSerializer.Deserialize<JsonElement>(json);
 
+        var accessToken = tokenData.GetProperty("access_token").GetString();
+
         var token = new XeroToken
         {
-            AccessToken = tokenData.GetProperty("access_token").GetString(),
+            AccessToken = accessToken,
             RefreshToken = tokenData.GetProperty("refresh_token").GetString(),
             IdToken = tokenData.GetProperty("id_token").GetString(),
             TokenType = tokenData.GetProperty("token_type").GetString(),
             Scope = tokenData.GetProperty("scope").GetString(),
-            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32()),
-            TenantId = "" // Will be set after fetching from /connections
+            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32())
         };
+
+        // --- Fetch the TenantId from the /connections API ---
+        var connectionsRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.xero.com/connections");
+        connectionsRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        connectionsRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        var connectionsResponse = await _httpClient.SendAsync(connectionsRequest);
+        var connectionsJson = await connectionsResponse.Content.ReadAsStringAsync();
+
+        if (!connectionsResponse.IsSuccessStatusCode)
+            throw new ApplicationException($"Failed to retrieve Xero tenant: {connectionsJson}");
+
+        var connections = JsonSerializer.Deserialize<JsonElement>(connectionsJson);
+
+        if (connections.ValueKind == JsonValueKind.Array && connections.GetArrayLength() > 0)
+        {
+            var firstConnection = connections[0];
+            token.TenantId = firstConnection.GetProperty("tenantId").GetString();
+        }
+        else
+        {
+            throw new ApplicationException("No Xero tenant found in the connections response.");
+        }
 
         _db.XeroTokens.Add(token);
         await _db.SaveChangesAsync();
 
         return token;
     }
+
 
 }
