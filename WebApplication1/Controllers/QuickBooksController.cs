@@ -71,14 +71,16 @@ namespace WebApplication1.Controllers
             try
             {
                 var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+    .Where(t => t.Company == "QBO")
+    .OrderByDescending(t => t.CreatedAt)
+    .FirstOrDefaultAsync();
 
                 if (tokenRecord == null)
-                    return NotFound("No QuickBooks token found.");
+                    return NotFound("No QuickBooks token found for company QBO.");
 
                 var accessToken = tokenRecord.AccessToken;
                 var realmId = tokenRecord.RealmId;
+
 
                 if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(realmId))
                     return BadRequest("Missing access token or realm ID.");
@@ -138,7 +140,7 @@ namespace WebApplication1.Controllers
                             CurrencyName = currencyName,
                             QuickBooksUserId = tokenRecord.QuickBooksUserId,
                             CreatedAt = DateTime.UtcNow,
-                            Company = "QBO"
+                            Company = "QBO" // ✅ Marking data as QBO-sourced
                         };
 
                         accounts.Add(newAccount);
@@ -152,10 +154,9 @@ namespace WebApplication1.Controllers
 
                     try
                     {
-                       
-
-                        _dbContext.ChartOfAccounts.RemoveRange(_dbContext.ChartOfAccounts.Where(c => c.Company == "QBO"));
-                      
+                        // ✅ Delete only the QBO chart of accounts to prevent unwanted removal
+                        var oldAccounts = _dbContext.ChartOfAccounts.Where(c => c.Company == "QBO");
+                        _dbContext.ChartOfAccounts.RemoveRange(oldAccounts);
 
                         await _dbContext.ChartOfAccounts.AddRangeAsync(accounts);
                         await _dbContext.SaveChangesAsync();
@@ -180,54 +181,6 @@ namespace WebApplication1.Controllers
         }
 
 
-
-        private List<ChartOfAccount> ParseAccountData(string json, string quickBooksUserId)
-        {
-            var result = new List<ChartOfAccount>();
-
-            using var document = JsonDocument.Parse(json);
-
-            var accounts = document.RootElement
-                .GetProperty("QueryResponse")
-                .GetProperty("Account")
-                .EnumerateArray();
-
-            foreach (var account in accounts)
-            {
-                var currencyRef = account.TryGetProperty("CurrencyRef", out var currencyRefElement)
-                    ? currencyRefElement.GetProperty("value").GetString()
-                    : "USD"; // Set a default value or fallback
-
-                var chartOfAccount = new ChartOfAccount
-                {
-                    QuickBooksAccountId = account.GetProperty("Id").GetString(),
-                    Name = account.GetProperty("Name").GetString(),
-                    AccountType = account.TryGetProperty("AccountType", out var type) ? type.GetString() : null,
-                    AccountSubType = account.TryGetProperty("AccountSubType", out var subType) ? subType.GetString() : null,
-                    //Description = account.TryGetProperty("Description", out var desc) ? desc.GetString() : null,
-                    //Active = account.TryGetProperty("Active", out var active) && active.GetBoolean(),
-                    Classification = account.TryGetProperty("Classification", out var classification) ? classification.GetString() : null,
-                    QuickBooksUserId = quickBooksUserId,
-                    CurrencyValue = currencyRef // ✅ Ensure it's never null
-                };
-
-                result.Add(chartOfAccount);
-            }
-
-            return result;
-        }
-
-
-        private string GetJsonPropertyValue(JsonElement element, string propertyName)
-        {
-            if (element.TryGetProperty(propertyName, out JsonElement property) &&
-                property.ValueKind != JsonValueKind.Null)
-            {
-                return property.GetString();
-            }
-
-            return null;
-        }
 
 
         private async Task<List<Account>> FetchAccountsFromQuickBooks(string accessToken, string realmId, string accountType)
