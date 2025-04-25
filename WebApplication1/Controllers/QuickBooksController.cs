@@ -32,6 +32,15 @@ namespace WebApplication1.Controllers
     string? searchTerm = null,
     string? company = null)
         {
+            // Check for at least one valid QuickBooks or Xero token
+            var hasQuickBooksToken = await _dbContext.QuickBooksTokens.AnyAsync();
+            var hasXeroToken = await _dbContext.XeroTokens.AnyAsync();
+
+            if (!hasQuickBooksToken && !hasXeroToken)
+            {
+                return Unauthorized("No active QuickBooks or Xero token found. Please authenticate first.");
+            }
+
             var query = _dbContext.ChartOfAccounts.AsQueryable();
 
             if (!string.IsNullOrEmpty(searchTerm))
@@ -54,10 +63,6 @@ namespace WebApplication1.Controllers
                 data
             });
         }
-
-
-
-
 
 
         [HttpGet("fetch-chart-of-accounts-from-quickbooks")]
