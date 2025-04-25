@@ -176,52 +176,69 @@ namespace WebApplication1.Controllers
             return base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
         }
 
+
         [HttpDelete("logout")]
         public async Task<IActionResult> Logout()
         {
             try
             {
-                var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+                // Delete ALL QuickBooks tokens and associated data
+                var quickBooksTokens = await _dbContext.QuickBooksTokens.ToListAsync();
 
-                if (tokenRecord == null)
-                    return NotFound("No QuickBooks token found.");
-
-                var quickBooksUserId = tokenRecord.QuickBooksUserId;
-
-                var accountsToDelete = await _dbContext.ChartOfAccounts
-                    .Where(c => c.QuickBooksUserId == quickBooksUserId)
-                    .ToListAsync();
-
-                if (accountsToDelete.Any())
+                if (quickBooksTokens.Any())
                 {
-                    _dbContext.ChartOfAccounts.RemoveRange(accountsToDelete);
-                    await _dbContext.SaveChangesAsync();
-                    _logger.LogInformation($"Deleted {accountsToDelete.Count} Chart of Accounts entries for QuickBooksUserId: {quickBooksUserId}.");
+                    // Get all QuickBooksUserIds
+                    var quickBooksUserIds = quickBooksTokens.Select(t => t.QuickBooksUserId).Distinct().ToList();
+
+                    // Delete Chart of Accounts linked to any QuickBooksUserId
+                    var accountsToDelete = await _dbContext.ChartOfAccounts
+                        .Where(c => quickBooksUserIds.Contains(c.QuickBooksUserId))
+                        .ToListAsync();
+
+                    if (accountsToDelete.Any())
+                    {
+                        _dbContext.ChartOfAccounts.RemoveRange(accountsToDelete);
+                        _logger.LogInformation($"Deleted {accountsToDelete.Count} Chart of Accounts entries for QuickBooks users.");
+                    }
+
+                    // Delete Customers linked to any QuickBooksUserId
+                    var customersToDelete = await _dbContext.Customers
+                        .Where(c => quickBooksUserIds.Contains(c.QuickBooksUserId))
+                        .ToListAsync();
+
+                    if (customersToDelete.Any())
+                    {
+                        _dbContext.Customers.RemoveRange(customersToDelete);
+                        _logger.LogInformation($"Deleted {customersToDelete.Count} Customer records.");
+                    }
+
+                    // Delete all QuickBooks tokens
+                    _dbContext.QuickBooksTokens.RemoveRange(quickBooksTokens);
                 }
 
-                var customersToDelete = await _dbContext.Customers
-                    .Where(c => c.QuickBooksUserId == quickBooksUserId)
-                    .ToListAsync();
+                // Delete ALL Xero tokens
+                var xeroTokens = await _dbContext.XeroTokens.ToListAsync();
+                var xeroAccount = await _dbContext.ChartOfAccounts.ToListAsync();
 
-                if (customersToDelete.Any())
+                if (xeroTokens.Any())
                 {
-                    _dbContext.Customers.RemoveRange(customersToDelete);
-                    await _dbContext.SaveChangesAsync();
-                    _logger.LogInformation($"Deleted {customersToDelete.Count} Customer records.");
+                    _dbContext.XeroTokens.RemoveRange(xeroTokens);
+                    _dbContext.ChartOfAccounts.RemoveRange(xeroAccount);
+                    _logger.LogInformation($"Deleted {xeroTokens.Count} Xero token records.");
                 }
 
-                _dbContext.QuickBooksTokens.Remove(tokenRecord);
                 await _dbContext.SaveChangesAsync();
 
-                return Ok("Token and associated data deleted successfully.");
+                return Ok("All tokens and associated data deleted successfully.");
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error during logout.");
                 return StatusCode(500, $"Error during logout and deletion: {ex.Message}");
             }
         }
+
+
 
 
         [HttpPost("refresh")]
