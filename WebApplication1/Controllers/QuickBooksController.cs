@@ -25,35 +25,37 @@ namespace WebApplication1.Controllers
             _logger = logger;
         }
 
-       [HttpGet("fetch-from-db")]
-public async Task<IActionResult> FetchChartOfAccountsFromDb()
-{
-    try
-    {
-        // Fetch the latest QuickBooks token
-        var tokenRecord = await _dbContext.QuickBooksTokens
-            .OrderByDescending(t => t.CreatedAt)
-            .FirstOrDefaultAsync();
+        [HttpGet("fetch-from-db")]
+        public async Task<IActionResult> FetchChartOfAccountsFromDb(
+    int page = 1,
+    int pageSize = 10,
+    string? searchTerm = null,
+    string? company = null)
+        {
+            var query = _dbContext.ChartOfAccounts.AsQueryable();
 
-        // If no token is found, return an error
-        if (tokenRecord == null)
-            return NotFound("No QuickBooks token found.");
+            if (!string.IsNullOrEmpty(searchTerm))
+                query = query.Where(a => a.Name.Contains(searchTerm));
 
-        // prb here
-        var query = _dbContext.ChartOfAccounts
-            .Where(c => c.Id == tokenRecord.Id);
+            if (!string.IsNullOrEmpty(company))
+                query = query.Where(a => a.Company == company);
 
-        // Fetch all data from the database (no filtering, no pagination)
-        var allData = await query.OrderBy(c => c.Name).ToListAsync();
+            var totalRecords = await query.CountAsync();
+            var data = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
-        // Return the data to the frontend
-        return Ok(allData);
-    }
-    catch (Exception ex)
-    {
-        return StatusCode(500, $"Error fetching chart of accounts: {ex.Message}");
-    }
-}
+            return Ok(new
+            {
+                totalRecords,
+                currentPage = page,
+                pageSize,
+                data
+            });
+        }
+
+
 
 
 
