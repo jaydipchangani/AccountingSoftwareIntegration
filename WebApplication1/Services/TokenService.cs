@@ -29,7 +29,7 @@ namespace WebApplication1.Services
             if (token == null)
                 throw new InvalidOperationException("No token found in the database.");
 
-            var expiryTime = token.CreatedAt.AddSeconds(token.ExpiresIn - 60); 
+            var expiryTime = token.CreatedAt.AddSeconds((double)(token.ExpiresIn - 60)); 
             if (DateTime.UtcNow < expiryTime)
                 return token.AccessToken;
 

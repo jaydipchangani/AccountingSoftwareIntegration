@@ -117,7 +117,8 @@ namespace WebApplication1.Controllers
                     TokenType = tokenData.TokenType,
                     ExpiresIn = tokenData.ExpiresIn,
                     XRefreshTokenExpiresIn = tokenData.XRefreshTokenExpiresIn,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    Company = "QBO"
                 };
 
                 _context.QuickBooksTokens.Add(token);
@@ -209,7 +210,7 @@ namespace WebApplication1.Controllers
                     if (customersToDelete.Any())
                     {
                         _dbContext.Customers.RemoveRange(customersToDelete);
-                        _logger.LogInformation($"Deleted {customersToDelete.Count} Customer records.");
+                        _logger.LogInformation($"Deleted Customer records.");
                     }
 
                     // Delete all QuickBooks tokens

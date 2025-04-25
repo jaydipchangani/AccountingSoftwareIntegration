@@ -5,6 +5,7 @@ using System.Text;
 using WebApplication1.Models.Xero;
 using WebApplication1.Models.Xero;
 using WebApplication1.Data;
+using WebApplication1.Models;
 
 public class XeroAuthService
 {
@@ -52,7 +53,7 @@ public class XeroAuthService
     }
 
 
-    public async Task<XeroToken> ExchangeCodeForTokenAsync(string code, string state)
+    public async Task<QuickBooksToken> ExchangeCodeForTokenAsync(string code, string state)
     {
         var tokenEndpoint = "https://identity.xero.com/connect/token";
 
@@ -79,18 +80,7 @@ public class XeroAuthService
             throw new ApplicationException($"Xero token exchange failed: {json}");
 
         var tokenData = JsonSerializer.Deserialize<JsonElement>(json);
-
         var accessToken = tokenData.GetProperty("access_token").GetString();
-
-        var token = new XeroToken
-        {
-            AccessToken = accessToken,
-            RefreshToken = tokenData.GetProperty("refresh_token").GetString(),
-            IdToken = tokenData.GetProperty("id_token").GetString(),
-            TokenType = tokenData.GetProperty("token_type").GetString(),
-            Scope = tokenData.GetProperty("scope").GetString(),
-            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32())
-        };
 
         // --- Fetch the TenantId from the /connections API ---
         var connectionsRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.xero.com/connections");
@@ -104,22 +94,40 @@ public class XeroAuthService
             throw new ApplicationException($"Failed to retrieve Xero tenant: {connectionsJson}");
 
         var connections = JsonSerializer.Deserialize<JsonElement>(connectionsJson);
+        string tenantId = null;
 
         if (connections.ValueKind == JsonValueKind.Array && connections.GetArrayLength() > 0)
         {
             var firstConnection = connections[0];
-            token.TenantId = firstConnection.GetProperty("tenantId").GetString();
+            tenantId = firstConnection.GetProperty("tenantId").GetString();
         }
         else
         {
             throw new ApplicationException("No Xero tenant found in the connections response.");
         }
 
-        _db.XeroTokens.Add(token);
+        // Save to QuickBooksToken table
+        var token = new QuickBooksToken
+        {
+            AccessToken = accessToken,
+            RefreshToken = tokenData.GetProperty("refresh_token").GetString(),
+            IdToken = tokenData.GetProperty("id_token").GetString(),
+            TokenType = tokenData.GetProperty("token_type").GetString(),
+            Scope = tokenData.GetProperty("scope").GetString(),
+            ExpiresIn = tokenData.GetProperty("expires_in").GetInt32(),
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32()),
+            CreatedAtUtc = DateTime.UtcNow,
+            TenantId = tenantId,
+            Company = "Xero" 
+        };
+
+        _db.QuickBooksTokens.Add(token);
         await _db.SaveChangesAsync();
 
         return token;
     }
+
 
 
 }
