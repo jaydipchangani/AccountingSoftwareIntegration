@@ -974,6 +974,28 @@
         }
       }
     },
+    "/api/Xero/deactivate-contact/{contactId}": {
+      "post": {
+        "tags": [
+          "Xero"
+        ],
+        "parameters": [
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/XeroAccounts/fetch-chart-of-accounts-from-xero": {
       "get": {
         "tags": [

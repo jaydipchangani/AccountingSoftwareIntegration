@@ -28,5 +28,21 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, $"Error syncing Xero contacts: {ex.Message}");
             }
         }
+
+
+        [HttpPost("deactivate-contact/{contactId}")]
+        public async Task<IActionResult> DeactivateContact(string contactId)
+        {
+            try
+            {
+                // Call the service to deactivate the contact in Xero
+                await _xeroService.DeactivateContactAsync(contactId);
+                return Ok("Contact deactivated successfully.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error: {ex.Message}");
+            }
+        }
     }
 }

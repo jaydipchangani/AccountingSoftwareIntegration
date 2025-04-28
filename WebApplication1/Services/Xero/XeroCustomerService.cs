@@ -8,6 +8,8 @@ using Microsoft.Extensions.Configuration;
 using System.Linq;
 using WebApplication1.Data;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace WebApplication1.Services
 {
@@ -15,11 +17,13 @@ namespace WebApplication1.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _context;
+        private readonly HttpClient _httpClient;
 
-        public XeroService(IConfiguration configuration, ApplicationDbContext context)
+        public XeroService(IConfiguration configuration, ApplicationDbContext context,HttpClient httpClient)
         {
             _configuration = configuration;
             _context = context;
+            _httpClient = httpClient;
         }
 
         public async Task SyncXeroContactsAsync()
@@ -54,9 +58,9 @@ namespace WebApplication1.Services
                     throw new Exception($"Xero API request failed: {response.StatusCode} - {errorResponse}");
                 }
 
-                // Deserialize the response content
+                // Deserialize the response content using Newtonsoft.Json
                 var responseContent = await response.Content.ReadAsStringAsync();
-                var xeroContacts = JsonSerializer.Deserialize<XeroContactResponse>(responseContent);
+                var xeroContacts = JsonConvert.DeserializeObject<XeroContactResponse>(responseContent);
 
                 if (xeroContacts?.Contacts != null)
                 {
@@ -79,8 +83,7 @@ namespace WebApplication1.Services
                             // Handle addresses (using JSON string or comma-separated string)
                             if (xeroContact.Addresses != null)
                             {
-                                // Convert addresses to JSON format
-                                existingCustomer.Addresses = JsonSerializer.Serialize(xeroContact.Addresses);
+                                existingCustomer.Addresses = JsonConvert.SerializeObject(xeroContact.Addresses);
                             }
                             else
                             {
@@ -106,7 +109,7 @@ namespace WebApplication1.Services
                                 Phones = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
 
                                 // Handle addresses (using JSON string or comma-separated string)
-                                Addresses = xeroContact.Addresses != null ? JsonSerializer.Serialize(xeroContact.Addresses) : string.Empty,
+                                Addresses = xeroContact.Addresses != null ? JsonConvert.SerializeObject(xeroContact.Addresses) : string.Empty,
 
                                 Active = true,
                                 CreatedAt = DateTime.UtcNow,
@@ -134,9 +137,72 @@ namespace WebApplication1.Services
         }
 
 
+        // This method retrieves Xero token and tenant ID from the QuickBooksTokens table
+        public async Task<(string accessToken, string tenantId)> GetXeroAuthDetailsAsync()
+        {
+            // Fetch the most recent Xero token and tenant ID from the database
+            var xeroToken = await _context.QuickBooksTokens
+                .Where(t => t.Company == "Xero")
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync();
 
+            if (xeroToken == null)
+            {
+                throw new Exception("Xero token not found.");
+            }
 
+            // Return the access token and tenant ID as a tuple
+            return (xeroToken.AccessToken, xeroToken.TenantId);
+        }
 
+        public async Task DeactivateContactAsync(string contactId)
+        {
+            // Retrieve the Xero authentication details
+            var (accessToken, tenantId) = await GetXeroAuthDetailsAsync();
+
+            // Define the endpoint URL for Xero's API to update the contact
+            var url = $"https://api.xero.com/api.xro/2.0/Contacts/{contactId}";
+
+            // Define the payload to deactivate the contact (set Active to false)
+            var payload = new
+            {
+                Contacts = new[]
+                {
+                new { Active = false } // Deactivate the contact
+            }
+            };
+
+            // Serialize the payload using Newtonsoft.Json (JsonConvert)
+            var jsonPayload = JsonConvert.SerializeObject(payload);
+            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+            // Create an HttpRequestMessage to set the headers and body
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = content // Attach the content (body) to the request
+            };
+
+            // Set the required headers on the HttpRequestMessage
+            requestMessage.Headers.Add("Authorization", $"Bearer {accessToken}");
+            requestMessage.Headers.Add("Xero-Tenant-Id", tenantId);
+            requestMessage.Headers.Add("Accept", "application/json");
+
+            // Make the POST request to Xero's API
+            var response = await _httpClient.SendAsync(requestMessage);
+
+            // Check the response status and handle accordingly
+            if (response.IsSuccessStatusCode)
+            {
+                // Log or return a success message
+                Console.WriteLine("Contact deactivated successfully.");
+            }
+            else
+            {
+                // Handle any errors from the API response
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error deactivating contact: {response.StatusCode} - {errorMessage}");
+            }
+        }
 
     }
 

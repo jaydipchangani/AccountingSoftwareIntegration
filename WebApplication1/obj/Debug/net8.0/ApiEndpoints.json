@@ -589,6 +589,22 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
+    "Method": "DeactivateContact",
+    "RelativePath": "api/Xero/deactivate-contact/{contactId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "contactId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroController",
     "Method": "SyncContacts",
     "RelativePath": "api/Xero/sync-contacts",
     "HttpMethod": "POST",
