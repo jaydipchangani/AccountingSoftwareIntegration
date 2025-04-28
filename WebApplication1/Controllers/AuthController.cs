@@ -183,26 +183,25 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                // Delete ALL QuickBooks tokens and associated data
-                var quickBooksTokens = await _dbContext.QuickBooksTokens.ToListAsync();
+                // Delete ONLY QuickBooks tokens where Company == "QBO"
+                var quickBooksTokens = await _dbContext.QuickBooksTokens
+                    .Where(t => t.Company == "QBO") 
+                    .ToListAsync();
 
                 if (quickBooksTokens.Any())
                 {
-                    // Get all QuickBooksUserIds
                     var quickBooksUserIds = quickBooksTokens.Select(t => t.QuickBooksUserId).Distinct().ToList();
 
-                    // Delete Chart of Accounts linked to any QuickBooksUserId
-                    var accountsToDelete = await _dbContext.ChartOfAccounts
-                        .Where(c => quickBooksUserIds.Contains(c.QuickBooksUserId))
+                    var qboAccountsToDelete = await _dbContext.ChartOfAccounts
+                        .Where(c => quickBooksUserIds.Contains(c.QuickBooksUserId) && c.Company == "QBO")
                         .ToListAsync();
 
-                    if (accountsToDelete.Any())
+                    if (qboAccountsToDelete.Any())
                     {
-                        _dbContext.ChartOfAccounts.RemoveRange(accountsToDelete);
-                        _logger.LogInformation($"Deleted {accountsToDelete.Count} Chart of Accounts entries for QuickBooks users.");
+                        _dbContext.ChartOfAccounts.RemoveRange(qboAccountsToDelete);
+                        _logger.LogInformation($"Deleted {qboAccountsToDelete.Count} QBO Chart of Accounts entries.");
                     }
 
-                    // Delete Customers linked to any QuickBooksUserId
                     var customersToDelete = await _dbContext.Customers
                         .Where(c => quickBooksUserIds.Contains(c.QuickBooksUserId))
                         .ToListAsync();
@@ -210,33 +209,61 @@ namespace WebApplication1.Controllers
                     if (customersToDelete.Any())
                     {
                         _dbContext.Customers.RemoveRange(customersToDelete);
-                        _logger.LogInformation($"Deleted Customer records.");
+                        _logger.LogInformation($"Deleted {customersToDelete.Count} Customer records.");
                     }
 
-                    // Delete all QuickBooks tokens
                     _dbContext.QuickBooksTokens.RemoveRange(quickBooksTokens);
+                    _logger.LogInformation($"Deleted {quickBooksTokens.Count} QuickBooks token records.");
                 }
 
-                // Delete ALL Xero tokens
-                var xeroTokens = await _dbContext.XeroTokens.ToListAsync();
-                var xeroAccount = await _dbContext.ChartOfAccounts.ToListAsync();
+                // Delete ONLY Xero tokens and associated data
+                var xeroTokens = await _dbContext.QuickBooksTokens
+                    .Where(t => t.Company == "Xero")
+                    .ToListAsync();
 
                 if (xeroTokens.Any())
                 {
-                    _dbContext.XeroTokens.RemoveRange(xeroTokens);
-                    _dbContext.ChartOfAccounts.RemoveRange(xeroAccount);
+                    var xeroUserIds = xeroTokens
+                        .Select(t => t.QuickBooksUserId)
+                        .Distinct()
+                        .ToList();
+
+                    var xeroAccountsToDelete = await _dbContext.ChartOfAccounts
+                        .Where(c => c.Company == "Xero")
+                        .ToListAsync();
+
+                    if (xeroAccountsToDelete.Any())
+                    {
+                        _dbContext.ChartOfAccounts.RemoveRange(xeroAccountsToDelete);
+                        _logger.LogInformation($"Deleted {xeroAccountsToDelete.Count} Xero Chart of Accounts entries.");
+                    }
+
+                    var customersToDelete = await _dbContext.Customers
+                        .Where(c => xeroUserIds.Contains(c.QuickBooksUserId))
+                        .ToListAsync();
+
+                    if (customersToDelete.Any())
+                    {
+                        _dbContext.Customers.RemoveRange(customersToDelete);
+                        _logger.LogInformation($"Deleted {customersToDelete.Count} Customer records for Xero users.");
+                    }
+
+                    _dbContext.QuickBooksTokens.RemoveRange(xeroTokens);
                     _logger.LogInformation($"Deleted {xeroTokens.Count} Xero token records.");
                 }
 
+
                 await _dbContext.SaveChangesAsync();
 
-                return Ok("All tokens and associated data deleted successfully.");
+                return Ok("All QuickBooks and Xero tokens and associated data deleted successfully.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during logout.");
+                _logger.LogError(ex, "Error during logout and deletion.");
                 return StatusCode(500, $"Error during logout and deletion: {ex.Message}");
             }
+
+
         }
 
 
