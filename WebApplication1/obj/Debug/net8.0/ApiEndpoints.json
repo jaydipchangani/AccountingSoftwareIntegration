@@ -588,6 +588,16 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "WebApplication1.Controllers.XeroController",
+    "Method": "SyncContacts",
+    "RelativePath": "api/Xero/sync-contacts",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "XeroAccountsController",
     "Method": "FetchAccountsFromXero",
     "RelativePath": "api/XeroAccounts/fetch-chart-of-accounts-from-xero",

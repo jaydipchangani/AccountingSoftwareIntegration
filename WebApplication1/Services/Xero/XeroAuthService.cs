@@ -45,6 +45,14 @@ public class XeroAuthService
             throw new InvalidOperationException("Xero OAuth configuration is missing required values.");
         }
 
+        // Add the 'accounting.contacts' scope for Contacts access
+        var contactsScope = "accounting.contacts";
+        if (!scopes.Contains(contactsScope))
+        {
+            scopes += " " + contactsScope; // Append the scope if it's not already in the list
+        }
+
+        // Return the authorization URL with the updated scopes
         return $"https://login.xero.com/identity/connect/authorize" +
                $"?response_type=code" +
                $"&client_id={Uri.EscapeDataString(clientId)}" +

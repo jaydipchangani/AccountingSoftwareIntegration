@@ -19,7 +19,7 @@ builder.Services.AddScoped<XeroAuthService>();
 builder.Services.AddHttpClient<XeroAccountService>(); // registers with HttpClient
 builder.Services.AddScoped<XeroAccountService>();      // registers as a scoped service
 
-
+builder.Services.AddScoped<XeroService>();
 
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

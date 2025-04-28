@@ -1,0 +1,5 @@
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\XeroIntegration\obj\Debug\net8.0\XeroIntegration.GeneratedMSBuildEditorConfig.editorconfig
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\XeroIntegration\obj\Debug\net8.0\XeroIntegration.AssemblyInfoInputs.cache
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\XeroIntegration\obj\Debug\net8.0\XeroIntegration.AssemblyInfo.cs
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\XeroIntegration\obj\Debug\net8.0\XeroIntegration.csproj.CoreCompileInputs.cache
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\XeroIntegration\obj\Debug\net8.0\XeroIntegration.sourcelink.json

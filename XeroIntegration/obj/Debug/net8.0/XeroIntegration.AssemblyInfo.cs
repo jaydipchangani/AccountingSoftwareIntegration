@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("XeroIntegration")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5063f57708eaf58586546b288933ce783ff5a3e9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4f876e6620443485da7575dbff9e469a57dcba02")]
 [assembly: System.Reflection.AssemblyProductAttribute("XeroIntegration")]
 [assembly: System.Reflection.AssemblyTitleAttribute("XeroIntegration")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

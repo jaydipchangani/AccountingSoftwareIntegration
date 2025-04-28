@@ -962,6 +962,18 @@
         }
       }
     },
+    "/api/Xero/sync-contacts": {
+      "post": {
+        "tags": [
+          "Xero"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/XeroAccounts/fetch-chart-of-accounts-from-xero": {
       "get": {
         "tags": [
