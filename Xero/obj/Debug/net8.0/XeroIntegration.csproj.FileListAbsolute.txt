@@ -1,0 +1,13 @@
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\XeroIntegration.GeneratedMSBuildEditorConfig.editorconfig
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\XeroIntegration.AssemblyInfoInputs.cache
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\XeroIntegration.AssemblyInfo.cs
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\XeroIntegration.csproj.CoreCompileInputs.cache
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\XeroIntegration.sourcelink.json
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\XeroIntegration.csproj.AssemblyReference.cache
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\bin\Debug\net8.0\XeroIntegration.deps.json
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\bin\Debug\net8.0\XeroIntegration.dll
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\bin\Debug\net8.0\XeroIntegration.pdb
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\XeroIntegration.dll
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\refint\XeroIntegration.dll
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\XeroIntegration.pdb
+C:\QuickBooksIntegration\QuickBooksIntegration\WebApplication1\Xero\obj\Debug\net8.0\ref\XeroIntegration.dll

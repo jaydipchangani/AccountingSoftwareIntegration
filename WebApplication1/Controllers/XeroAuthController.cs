@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using WebApplication1.Services;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -13,17 +11,29 @@ public class XeroAuthController : ControllerBase
         _xeroService = xeroService;
     }
 
+    // Redirect user to Xero login page for OAuth
     [HttpGet("login")]
     public IActionResult Login()
     {
         var authUrl = _xeroService.BuildAuthorizationUrl();
-        return Redirect(authUrl);
+        return Redirect(authUrl); // Redirect to Xero authorization page
     }
 
+    // Xero OAuth callback to exchange the code for an access token
     [HttpGet("callback")]
     public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
     {
-        var result = await _xeroService.ExchangeCodeForTokenAsync(code,state);
-        return Redirect("http://localhost:5173/home");
+        try
+        {
+            var result = await _xeroService.ExchangeCodeForTokenAsync(code, state);
+
+            // After successful exchange, redirect to the homepage or a relevant page
+            return Redirect("http://localhost:5173/home");
+        }
+        catch (Exception ex)
+        {
+            // In case of error during the token exchange
+            return StatusCode(500, ex.Message);
+        }
     }
 }
