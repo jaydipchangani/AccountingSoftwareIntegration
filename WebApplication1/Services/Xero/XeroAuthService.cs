@@ -6,6 +6,7 @@ using WebApplication1.Models.Xero;
 using WebApplication1.Models.Xero;
 using WebApplication1.Data;
 using WebApplication1.Models;
+using Microsoft.EntityFrameworkCore;
 
 public class XeroAuthService
 {
@@ -106,26 +107,49 @@ public class XeroAuthService
             throw new ApplicationException("No Xero tenant found in the connections response.");
         }
 
-        // Save to QuickBooksToken table
-        var token = new QuickBooksToken
-        {
-            AccessToken = accessToken,
-            RefreshToken = tokenData.GetProperty("refresh_token").GetString(),
-            IdToken = tokenData.GetProperty("id_token").GetString(),
-            TokenType = tokenData.GetProperty("token_type").GetString(),
-            Scope = tokenData.GetProperty("scope").GetString(),
-            ExpiresIn = tokenData.GetProperty("expires_in").GetInt32(),
-            CreatedAt = DateTime.UtcNow,
-            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32()),
-            CreatedAtUtc = DateTime.UtcNow,
-            TenantId = tenantId,
-            Company = "Xero" 
-        };
+        // Check if a token already exists for Company = "Xero"
+        var existingToken = await _db.QuickBooksTokens
+            .FirstOrDefaultAsync(t => t.Company == "Xero");
 
-        _db.QuickBooksTokens.Add(token);
+        if (existingToken != null)
+        {
+            // Update existing record
+            existingToken.AccessToken = accessToken;
+            existingToken.RefreshToken = tokenData.GetProperty("refresh_token").GetString();
+            existingToken.IdToken = tokenData.GetProperty("id_token").GetString();
+            existingToken.TokenType = tokenData.GetProperty("token_type").GetString();
+            existingToken.Scope = tokenData.GetProperty("scope").GetString();
+            existingToken.ExpiresIn = tokenData.GetProperty("expires_in").GetInt32();
+            existingToken.ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32());
+            existingToken.CreatedAtUtc = DateTime.UtcNow;
+            existingToken.TenantId = tenantId;
+        }
+        else
+        {
+            // Insert new record
+            var token = new QuickBooksToken
+            {
+                AccessToken = accessToken,
+                RefreshToken = tokenData.GetProperty("refresh_token").GetString(),
+                IdToken = tokenData.GetProperty("id_token").GetString(),
+                TokenType = tokenData.GetProperty("token_type").GetString(),
+                Scope = tokenData.GetProperty("scope").GetString(),
+                ExpiresIn = tokenData.GetProperty("expires_in").GetInt32(),
+                ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32()),
+                CreatedAtUtc = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                TenantId = tenantId,
+                Company = "Xero"
+            };
+
+            _db.QuickBooksTokens.Add(token);
+        }
+
+        // Save changes in both cases
         await _db.SaveChangesAsync();
 
-        return token;
+
+        return existingToken;
     }
 
 
