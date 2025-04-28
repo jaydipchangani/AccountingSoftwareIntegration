@@ -106,8 +106,10 @@ namespace WebApplication1.Controllers
             try
             {
                 var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+    .Where(t => t.Company == "QBO")  
+    .OrderByDescending(t => t.CreatedAt)
+    .FirstOrDefaultAsync();
+
 
                 if (tokenRecord == null)
                     return NotFound("No QuickBooks token found.");
@@ -185,8 +187,9 @@ namespace WebApplication1.Controllers
             {
                 // Step 1: Get the latest QuickBooks token from DB
                 var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+    .Where(t => t.Company == "QBO")
+    .OrderByDescending(t => t.CreatedAt)
+    .FirstOrDefaultAsync();
 
                 if (tokenRecord == null)
                     return NotFound("No QuickBooks token found.");
@@ -299,10 +302,10 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                // Step 1: Get latest QuickBooks token
                 var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+    .Where(t => t.Company == "QBO")
+    .OrderByDescending(t => t.CreatedAt)
+    .FirstOrDefaultAsync();
 
                 if (tokenRecord == null)
                     return NotFound("No QuickBooks token found.");
@@ -402,10 +405,10 @@ namespace WebApplication1.Controllers
         {
             try
             {
-                // Step 1: Get latest token
                 var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+    .Where(t => t.Company == "QBO")
+    .OrderByDescending(t => t.CreatedAt)
+    .FirstOrDefaultAsync();
 
                 if (tokenRecord == null)
                     return NotFound("No QuickBooks token found.");
