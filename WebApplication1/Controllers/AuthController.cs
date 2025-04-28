@@ -107,36 +107,59 @@ namespace WebApplication1.Controllers
                 _logger.LogInformation("QuickBooks User ID extracted: {UserId}", quickBooksUserId);
 
 
-                var token = new QuickBooksToken
-                {
-                    QuickBooksUserId = quickBooksUserId,
-                    RealmId = request.RealmId,
-                    AccessToken = tokenData.AccessToken,
-                    RefreshToken = tokenData.RefreshToken,
-                    IdToken = tokenData.IdToken,
-                    TokenType = tokenData.TokenType,
-                    ExpiresIn = tokenData.ExpiresIn,
-                    XRefreshTokenExpiresIn = tokenData.XRefreshTokenExpiresIn,
-                    CreatedAt = DateTime.UtcNow,
-                    Company = "QBO"
-                };
+                // Check if a token already exists for Company = "QBO"
+                var existingToken = await _context.QuickBooksTokens
+                    .FirstOrDefaultAsync(t => t.Company == "QBO");
 
-                _context.QuickBooksTokens.Add(token);
+                if (existingToken != null)
+                {
+                    // Update existing record
+                    existingToken.QuickBooksUserId = quickBooksUserId;
+                    existingToken.RealmId = request.RealmId;
+                    existingToken.AccessToken = tokenData.AccessToken;
+                    existingToken.RefreshToken = tokenData.RefreshToken;
+                    existingToken.IdToken = tokenData.IdToken;
+                    existingToken.TokenType = tokenData.TokenType;
+                    existingToken.ExpiresIn = tokenData.ExpiresIn;
+                    existingToken.XRefreshTokenExpiresIn = tokenData.XRefreshTokenExpiresIn;
+                }
+                else
+                {
+                    // Insert new record
+                    var token = new QuickBooksToken
+                    {
+                        QuickBooksUserId = quickBooksUserId,
+                        RealmId = request.RealmId,
+                        AccessToken = tokenData.AccessToken,
+                        RefreshToken = tokenData.RefreshToken,
+                        IdToken = tokenData.IdToken,
+                        TokenType = tokenData.TokenType,
+                        ExpiresIn = tokenData.ExpiresIn,
+                        XRefreshTokenExpiresIn = tokenData.XRefreshTokenExpiresIn,
+                        CreatedAt = DateTime.UtcNow,
+                        Company = "QBO"
+                    };
+
+                    _context.QuickBooksTokens.Add(token);
+                }
+
+                // Save changes in both cases
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Token successfully saved to database with ID: {TokenId}", token.Id);
+                _logger.LogInformation("Token successfully saved/updated in database for Company: QBO.");
 
                 return Ok(new
                 {
-                    message = "Token saved successfully",
+                    message = "Token saved/updated successfully",
                     token = new
                     {
-                        token.AccessToken,
-                        token.RefreshToken,
-                        token.IdToken,
-                        token.RealmId
+                        accessToken = tokenData.AccessToken,
+                        refreshToken = tokenData.RefreshToken,
+                        idToken = tokenData.IdToken,
+                        realmId = request.RealmId
                     }
                 });
+
             }
             catch (Exception ex)
             {
