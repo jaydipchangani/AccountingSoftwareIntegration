@@ -10,6 +10,8 @@ using WebApplication1.Data;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Text;
+using System.Net.Http.Headers;
+using WebApplication1.Models.Xero.WebApplication1.Dtos;
 
 namespace WebApplication1.Services
 {
@@ -140,7 +142,7 @@ namespace WebApplication1.Services
         }
 
 
-        // This method retrieves Xero token and tenant ID from the QuickBooksTokens table
+
         public async Task<(string accessToken, string tenantId)> GetXeroAuthDetailsAsync()
         {
             // Fetch the most recent Xero token and tenant ID from the database
@@ -156,6 +158,85 @@ namespace WebApplication1.Services
 
             // Return the access token and tenant ID as a tuple
             return (xeroToken.AccessToken, xeroToken.TenantId);
+        }
+
+
+        public async Task<string> AddCustomerToXeroAsync(AddCustomerToXeroDto dto)
+        {
+            var (accessToken, tenantId) = await GetXeroAuthDetailsAsync();
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            httpClient.DefaultRequestHeaders.Add("Xero-Tenant-Id", tenantId);
+            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var xeroPayload = new
+            {
+                Contacts = new[]
+     {
+        new
+        {
+            Name = dto.DisplayName ?? $"{dto.GivenName} {dto.FamilyName}".Trim(),
+            EmailAddress = dto.Email,
+            Phones = dto.Phones?.Select(p => new
+            {
+                PhoneType = p.PhoneType,
+                PhoneNumber = p.PhoneNumber,
+                PhoneAreaCode = p.PhoneAreaCode,
+                PhoneCountryCode = p.PhoneCountryCode ?? ""
+            }).ToList(),
+            Addresses = dto.Addresses?.Select(a => new
+            {
+                AddressType = a.AddressType,
+                City = a.City ?? "",
+                Region = a.Region ?? "",
+                PostalCode = a.PostalCode ?? "",
+                Country = a.Country ?? ""
+            }).ToList()
+        }
+    }
+            };
+
+
+            var jsonPayload = JsonConvert.SerializeObject(xeroPayload);
+            var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await httpClient.PostAsync("https://api.xero.com/api.xro/2.0/Contacts", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Xero API Error: {errorContent}");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            dynamic xeroResponse = JsonConvert.DeserializeObject(responseContent);
+
+            string contactId = xeroResponse?.Contacts[0]?.ContactID;
+            if (string.IsNullOrWhiteSpace(contactId))
+            {
+                throw new Exception("Xero ContactID missing from response.");
+            }
+
+            // Map to Customer entity for DB
+            var customer = new Customer
+            {
+                ContactID = contactId,
+                DisplayName = dto.DisplayName,
+                GivenName = dto.GivenName,
+                FamilyName = dto.FamilyName,
+                Email = dto.Email,
+                Phones = JsonConvert.SerializeObject(dto.Phones),
+                Addresses = JsonConvert.SerializeObject(dto.Addresses),
+                Company = "Xero",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
+
+            return contactId;
         }
 
         public async Task DeactivateContactAsync(string contactId)

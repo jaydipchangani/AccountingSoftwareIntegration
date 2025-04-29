@@ -594,6 +594,22 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
+    "Method": "AddCustomerToXero",
+    "RelativePath": "api/Xero/add-customer-to-xero",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "WebApplication1.Models.Xero.WebApplication1.Dtos.AddCustomerToXeroDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroController",
     "Method": "DeactivateContact",
     "RelativePath": "api/Xero/deactivate-contact/{contactId}",
     "HttpMethod": "POST",

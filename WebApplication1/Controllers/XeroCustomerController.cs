@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Services;
 using System.Threading.Tasks;
+using WebApplication1.Models;
+using WebApplication1.Models.Xero.WebApplication1.Dtos;
 
 namespace WebApplication1.Controllers
 {
@@ -30,6 +32,24 @@ namespace WebApplication1.Controllers
         }
 
 
+        [HttpPost("add-customer-to-xero")]
+        public async Task<IActionResult> AddCustomerToXero([FromBody] AddCustomerToXeroDto dto)
+        {
+            try
+            {
+                if (dto == null)
+                    return BadRequest("Input is required.");
+
+                var contactId = await _xeroService.AddCustomerToXeroAsync(dto);
+
+                return Ok(new { message = "Customer added to Xero and local DB.", contactId });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error: {ex.Message}");
+            }
+        }
+
         [HttpPost("deactivate-contact/{contactId}")]
         public async Task<IActionResult> DeactivateContact(string contactId)
         {
@@ -44,5 +64,7 @@ namespace WebApplication1.Controllers
                 return BadRequest($"Error: {ex.Message}");
             }
         }
+
+
     }
 }
