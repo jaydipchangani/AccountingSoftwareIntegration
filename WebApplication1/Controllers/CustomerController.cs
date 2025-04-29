@@ -435,6 +435,7 @@ namespace WebApplication1.Controllers
                 existingCustomer.BillingPostalCode = customerDto.BillingPostalCode;
                 existingCustomer.BillingCountry = customerDto.BillingCountry;
                 existingCustomer.UpdatedAt = DateTime.UtcNow;
+                existingCustomer.Company = "QBO";
 
                 await _dbContext.SaveChangesAsync();
 
