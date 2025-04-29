@@ -65,18 +65,54 @@ namespace WebApplication1.Controllers
                     .Select(c => new
                     {
                         Id = c.Id,
+                        QuickBooksCustomerId = c.QuickBooksCustomerId ?? "",
+                        QuickBooksUserId = c.QuickBooksUserId ?? "",
+                        ContactID = c.ContactID ?? "",
+                        Company = c.Company ?? "",
+
                         DisplayName = c.DisplayName ?? "",
                         CompanyName = c.CompanyName ?? "",
-                        Phone = c.Phone ?? "",
-                        Balance = c.Balance,
+                        GivenName = c.GivenName ?? "",
+                        MiddleName = c.MiddleName ?? "",
+                        FamilyName = c.FamilyName ?? "",
+
+                        Title = c.Title ?? "",
+                        Suffix = c.Suffix ?? "",
                         Email = c.Email ?? "",
+                        Phone = c.Phone ?? "",
+
                         BillingLine1 = c.BillingLine1 ?? "",
                         BillingCity = c.BillingCity ?? "",
                         BillingState = c.BillingState ?? "",
                         BillingPostalCode = c.BillingPostalCode ?? "",
                         BillingCountry = c.BillingCountry ?? "",
+
                         ShippingLine1 = c.ShippingLine1 ?? "",
                         ShippingCity = c.ShippingCity ?? "",
+                        ShippingState = c.ShippingState ?? "",
+                        ShippingPostalCode = c.ShippingPostalCode ?? "",
+                        ShippingCountry = c.ShippingCountry ?? "",
+
+                        PreferredDeliveryMethod = c.PreferredDeliveryMethod ?? "",
+                        PrintOnCheckName = c.PrintOnCheckName ?? "",
+                        Notes = c.Notes ?? "",
+
+                        Website = c.Website ?? "",
+                        BankAccountDetails = c.BankAccountDetails ?? "",
+                        XeroNetworkKey = c.XeroNetworkKey ?? "",
+
+                        Phones = c.Phones ?? "",
+                        Addresses = c.Addresses ?? "",
+
+                        TaxNumber = c.TaxNumber ?? "",
+                        Discount = c.Discount ?? 0,
+                        Balance = c.Balance,
+
+                        Active = c.Active,
+                        CreatedAt = c.CreatedAt,
+                        UpdatedAt = c.UpdatedAt,
+                        QuickBooksCreateTime = c.QuickBooksCreateTime,
+                        QuickBooksLastUpdateTime = c.QuickBooksLastUpdateTime
 
                     })
                     .ToListAsync();
@@ -144,32 +180,82 @@ namespace WebApplication1.Controllers
 
                     try
                     {
-                        foreach (var customer in parsedCustomers)
+                        foreach (var parsedCustomer in parsedCustomers)
                         {
+                            parsedCustomer.Company = "QBO";
                             var existingCustomer = await _dbContext.Customers
-                                .FirstOrDefaultAsync(c => c.QuickBooksCustomerId == customer.QuickBooksCustomerId);
+                                .FirstOrDefaultAsync(c => c.QuickBooksCustomerId == parsedCustomer.QuickBooksCustomerId);
 
                             if (existingCustomer != null)
                             {
-                                existingCustomer.DisplayName = customer.DisplayName;
-                                existingCustomer.CompanyName = customer.CompanyName;
-                                existingCustomer.Email = customer.Email;
+                                // Update all fields systematically
+                                existingCustomer.QuickBooksUserId = parsedCustomer.QuickBooksUserId;
+                                existingCustomer.DisplayName = parsedCustomer.DisplayName;
+                                existingCustomer.CompanyName = parsedCustomer.CompanyName;
+                                existingCustomer.GivenName = parsedCustomer.GivenName;
+                                existingCustomer.MiddleName = parsedCustomer.MiddleName;
+                                existingCustomer.FamilyName = parsedCustomer.FamilyName;
+                                existingCustomer.Title = parsedCustomer.Title;
+                                existingCustomer.Suffix = parsedCustomer.Suffix;
+                                existingCustomer.Email = parsedCustomer.Email;
+                                existingCustomer.Phone = parsedCustomer.Phone;
+                                existingCustomer.BillingLine1 = parsedCustomer.BillingLine1;
+                                existingCustomer.BillingCity = parsedCustomer.BillingCity;
+                                existingCustomer.BillingState = parsedCustomer.BillingState;
+                                existingCustomer.BillingPostalCode = parsedCustomer.BillingPostalCode;
+                                existingCustomer.BillingCountry = parsedCustomer.BillingCountry;
+                                existingCustomer.ShippingLine1 = parsedCustomer.ShippingLine1;
+                                existingCustomer.ShippingCity = parsedCustomer.ShippingCity;
+                                existingCustomer.ShippingState = parsedCustomer.ShippingState;
+                                existingCustomer.ShippingPostalCode = parsedCustomer.ShippingPostalCode;
+                                existingCustomer.ShippingCountry = parsedCustomer.ShippingCountry;
+                                existingCustomer.PreferredDeliveryMethod = parsedCustomer.PreferredDeliveryMethod;
+                                existingCustomer.PrintOnCheckName = parsedCustomer.PrintOnCheckName;
+                                existingCustomer.Active = parsedCustomer.Active;
+                                existingCustomer.Balance = parsedCustomer.Balance;
+                                existingCustomer.Notes = parsedCustomer.Notes;
+                                existingCustomer.QuickBooksCreateTime = parsedCustomer.QuickBooksCreateTime;
+                                existingCustomer.QuickBooksLastUpdateTime = parsedCustomer.QuickBooksLastUpdateTime;
+                                existingCustomer.ContactID = parsedCustomer.ContactID;
+                                existingCustomer.TaxNumber = parsedCustomer.TaxNumber;
+                                existingCustomer.BankAccountDetails = parsedCustomer.BankAccountDetails;
+                                existingCustomer.Website = parsedCustomer.Website;
+                                existingCustomer.XeroNetworkKey = parsedCustomer.XeroNetworkKey;
+                                existingCustomer.Phones = parsedCustomer.Phones;
+                                existingCustomer.Addresses = parsedCustomer.Addresses;
+                                existingCustomer.Discount = parsedCustomer.Discount;
+
+
+                                existingCustomer.UpdatedAt = DateTime.UtcNow; // Update timestamp
                             }
                             else
                             {
-                                await _dbContext.Customers.AddAsync(customer);
+                                parsedCustomer.CreatedAt = DateTime.UtcNow;
+                                parsedCustomer.UpdatedAt = DateTime.UtcNow;
+
+                                await _dbContext.Customers.AddAsync(parsedCustomer);
                             }
                         }
 
-                        await _dbContext.SaveChangesAsync();
-                        await transaction.CommitAsync();
+                        try
+                        {
+                            await _dbContext.SaveChangesAsync();
+                            await transaction.CommitAsync();
+                        }
+                        catch (DbUpdateException ex)
+                        {
+                            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                            throw new Exception($"Error fetching customers from QuickBooks: {innerMessage}", ex);
+                        }
+
                     }
-                    catch
+                    catch (Exception)
                     {
                         await transaction.RollbackAsync();
                         throw;
                     }
                 });
+
 
                 return Ok(parsedCustomers);
             }
