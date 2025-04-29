@@ -320,7 +320,8 @@ namespace WebApplication1.Controllers
                     Active = true,
                     Balance = 1000,  
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    Company="QBO"
                 };
 
                 _dbContext.Customers.Add(newCustomer);

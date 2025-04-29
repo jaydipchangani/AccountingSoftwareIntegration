@@ -63,11 +63,13 @@ namespace WebApplication1.Services
 
                 if (xeroContacts?.Contacts != null)
                 {
+                    // 🔥 Remove all existing "Xero" customers before inserting fresh data
+                    var existingXeroCustomers = _context.Customers.Where(c => c.Company == "Xero");
+                    _context.Customers.RemoveRange(existingXeroCustomers);
+
+                    // 💾 Insert updated contact list
                     foreach (var xeroContact in xeroContacts.Contacts)
                     {
-                        var existingCustomer = await _context.Customers
-                            .FirstOrDefaultAsync(c => c.ContactID == xeroContact.ContactID);
-
                         var address = xeroContact.Addresses?.FirstOrDefault(a => a.AddressType == "POBOX")
                                    ?? xeroContact.Addresses?.FirstOrDefault(a => a.AddressType == "STREET");
 
@@ -77,51 +79,30 @@ namespace WebApplication1.Services
                         string postalCode = address?.PostalCode ?? string.Empty;
                         string country = address?.Country ?? string.Empty;
 
-                        // Determine Active: 1 if not ARCHIVED, else 0
                         bool isActive = !string.Equals(xeroContact.ContactStatus, "ARCHIVED", StringComparison.OrdinalIgnoreCase);
 
-                        if (existingCustomer != null)
+                        var newCustomer = new Customer
                         {
-                            existingCustomer.DisplayName = xeroContact.Name ?? string.Empty;
-                            existingCustomer.GivenName = xeroContact.FirstName ?? string.Empty;
-                            existingCustomer.FamilyName = xeroContact.LastName ?? string.Empty;
-                            existingCustomer.Email = xeroContact.EmailAddress ?? string.Empty;
-                            existingCustomer.Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty;
+                            ContactID = xeroContact.ContactID,
+                            DisplayName = xeroContact.Name ?? string.Empty,
+                            GivenName = xeroContact.FirstName ?? string.Empty,
+                            FamilyName = xeroContact.LastName ?? string.Empty,
+                            Email = xeroContact.EmailAddress ?? string.Empty,
+                            Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
 
-                            existingCustomer.BillingLine1 = line1;
-                            existingCustomer.BillingCity = city;
-                            existingCustomer.BillingState = region;
-                            existingCustomer.BillingPostalCode = postalCode;
-                            existingCustomer.BillingCountry = country;
+                            BillingLine1 = line1,
+                            BillingCity = city,
+                            BillingState = region,
+                            BillingPostalCode = postalCode,
+                            BillingCountry = country,
 
-                            existingCustomer.Active = isActive;
-                            existingCustomer.UpdatedAt = DateTime.UtcNow;
-                        }
-                        else
-                        {
-                            var newCustomer = new Customer
-                            {
-                                ContactID = xeroContact.ContactID,
-                                DisplayName = xeroContact.Name ?? string.Empty,
-                                GivenName = xeroContact.FirstName ?? string.Empty,
-                                FamilyName = xeroContact.LastName ?? string.Empty,
-                                Email = xeroContact.EmailAddress ?? string.Empty,
-                                Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
+                            Active = isActive,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow,
+                            Company = "Xero"
+                        };
 
-                                BillingLine1 = line1,
-                                BillingCity = city,
-                                BillingState = region,
-                                BillingPostalCode = postalCode,
-                                BillingCountry = country,
-
-                                Active = isActive,
-                                CreatedAt = DateTime.UtcNow,
-                                UpdatedAt = DateTime.UtcNow,
-                                Company = "Xero"
-                            };
-
-                            _context.Customers.Add(newCustomer);
-                        }
+                        _context.Customers.Add(newCustomer);
                     }
 
                     try
@@ -130,12 +111,13 @@ namespace WebApplication1.Services
                     }
                     catch (Exception ex)
                     {
-                        var innerException = ex.InnerException != null ? ex.InnerException.Message : "No inner exception";
+                        var innerException = ex.InnerException?.Message ?? "No inner exception";
                         throw new Exception($"Error syncing Xero contacts: {ex.Message} - Inner Exception: {innerException}");
                     }
                 }
             }
         }
+
 
 
         public async Task<(string accessToken, string tenantId)> GetXeroAuthDetailsAsync()
