@@ -78,7 +78,7 @@ namespace WebApplication1.Services
                             existingCustomer.Email = xeroContact.EmailAddress ?? string.Empty;
 
                             // Concatenate phone numbers into a comma-separated string
-                            existingCustomer.Phones = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty;
+                            existingCustomer.Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty;
 
                             // Handle addresses (using JSON string or comma-separated string)
                             if (xeroContact.Addresses != null)
@@ -106,7 +106,7 @@ namespace WebApplication1.Services
                                 Email = xeroContact.EmailAddress ?? string.Empty,
 
                                 // Concatenate phone numbers into a comma-separated string
-                                Phones = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
+                                Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
 
                                 // Handle addresses (using JSON string or comma-separated string)
                                 Addresses = xeroContact.Addresses != null ? JsonConvert.SerializeObject(xeroContact.Addresses) : string.Empty,

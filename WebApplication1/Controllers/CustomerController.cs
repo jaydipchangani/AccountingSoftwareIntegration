@@ -26,23 +26,23 @@ namespace WebApplication1.Controllers
 
         [HttpGet("fetch-customer-from-db-paginated")]
         public async Task<IActionResult> FetchCustomersFromDbPaginated(
-        int page = 1,
-        int pageSize = 10,
-        string? searchTerm = null)
+    int page = 1,
+    int pageSize = 10,
+    string? searchTerm = null)
         {
             try
             {
-                // Get latest token to fetch QuickBooksUserId
                 var tokenRecord = await _dbContext.QuickBooksTokens
+                    .Where(t => t.Company == "QBO")
                     .OrderByDescending(t => t.CreatedAt)
                     .FirstOrDefaultAsync();
 
                 if (tokenRecord == null)
                     return NotFound("No QuickBooks token found.");
 
-                // Base query filtered by QuickBooksUserId
-                var query = _dbContext.Customers
-                    .Where(c => c.QuickBooksUserId == tokenRecord.QuickBooksUserId);
+                // Fetch customers where QuickBooksUserId matches or is empty
+                var query = _dbContext.Customers.AsQueryable(); // No filtering
+
 
                 // Apply search if needed
                 if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -57,64 +57,11 @@ namespace WebApplication1.Controllers
                 // Count total records
                 var totalRecords = await query.CountAsync();
 
-                // Get paginated data
+                // Get paginated data (no manual select, fetch full Customer model)
                 var pagedData = await query
                     .OrderBy(c => c.DisplayName)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Select(c => new
-                    {
-                        Id = c.Id,
-                        QuickBooksCustomerId = c.QuickBooksCustomerId ?? "",
-                        QuickBooksUserId = c.QuickBooksUserId ?? "",
-                        ContactID = c.ContactID ?? "",
-                        Company = c.Company ?? "",
-
-                        DisplayName = c.DisplayName ?? "",
-                        CompanyName = c.CompanyName ?? "",
-                        GivenName = c.GivenName ?? "",
-                        MiddleName = c.MiddleName ?? "",
-                        FamilyName = c.FamilyName ?? "",
-
-                        Title = c.Title ?? "",
-                        Suffix = c.Suffix ?? "",
-                        Email = c.Email ?? "",
-                        Phone = c.Phone ?? "",
-
-                        BillingLine1 = c.BillingLine1 ?? "",
-                        BillingCity = c.BillingCity ?? "",
-                        BillingState = c.BillingState ?? "",
-                        BillingPostalCode = c.BillingPostalCode ?? "",
-                        BillingCountry = c.BillingCountry ?? "",
-
-                        ShippingLine1 = c.ShippingLine1 ?? "",
-                        ShippingCity = c.ShippingCity ?? "",
-                        ShippingState = c.ShippingState ?? "",
-                        ShippingPostalCode = c.ShippingPostalCode ?? "",
-                        ShippingCountry = c.ShippingCountry ?? "",
-
-                        PreferredDeliveryMethod = c.PreferredDeliveryMethod ?? "",
-                        PrintOnCheckName = c.PrintOnCheckName ?? "",
-                        Notes = c.Notes ?? "",
-
-                        Website = c.Website ?? "",
-                        BankAccountDetails = c.BankAccountDetails ?? "",
-                        XeroNetworkKey = c.XeroNetworkKey ?? "",
-
-                        Phones = c.Phones ?? "",
-                        Addresses = c.Addresses ?? "",
-
-                        TaxNumber = c.TaxNumber ?? "",
-                        Discount = c.Discount ?? 0,
-                        Balance = c.Balance,
-
-                        Active = c.Active,
-                        CreatedAt = c.CreatedAt,
-                        UpdatedAt = c.UpdatedAt,
-                        QuickBooksCreateTime = c.QuickBooksCreateTime,
-                        QuickBooksLastUpdateTime = c.QuickBooksLastUpdateTime
-
-                    })
                     .ToListAsync();
 
                 // Construct response
@@ -124,7 +71,7 @@ namespace WebApplication1.Controllers
                     TotalPages = (int)Math.Ceiling((double)totalRecords / pageSize),
                     CurrentPage = page,
                     PageSize = pageSize,
-                    Data = pagedData
+                    Data = pagedData  // Full Customer data
                 };
 
                 return Ok(response);
@@ -134,6 +81,7 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, $"Error fetching customers: {ex.Message}");
             }
         }
+
 
 
         [HttpGet("fetch-customers-from-quickbooks")]
