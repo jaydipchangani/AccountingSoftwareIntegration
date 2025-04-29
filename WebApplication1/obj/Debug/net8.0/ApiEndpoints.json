@@ -56,6 +56,16 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "WebApplication1.Controllers.AuthController",
+    "Method": "GetTokenStatus",
+    "RelativePath": "api/Auth/token-status",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "WebApplication1.Controllers.BillController",
     "Method": "GetBills",
     "RelativePath": "api/Bill",

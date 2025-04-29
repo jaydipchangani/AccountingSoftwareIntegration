@@ -50,7 +50,11 @@ namespace WebApplication1.Services
                 client.DefaultRequestHeaders.Add("Xero-Tenant-Id", tenantId);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
 
-                var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Contacts");
+                string baseUrl = _configuration["XeroBaseUrl"];
+                string fullUrl = $"{baseUrl}/Contacts";
+
+                var response = await client.GetAsync(fullUrl);
+
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -176,7 +180,12 @@ namespace WebApplication1.Services
             var jsonPayload = JsonConvert.SerializeObject(xeroPayload);
             var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
-            var response = await httpClient.PostAsync("https://api.xero.com/api.xro/2.0/Contacts", content);
+
+            string baseUrl = _configuration["XeroBaseUrl"];
+            string fullUrl = $"{baseUrl}/Contacts";
+
+
+            var response = await httpClient.PostAsync(fullUrl, content);
 
             if (!response.IsSuccessStatusCode)
             {

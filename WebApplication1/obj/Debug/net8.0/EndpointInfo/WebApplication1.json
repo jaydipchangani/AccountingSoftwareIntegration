@@ -72,6 +72,18 @@
         }
       }
     },
+    "/api/Auth/token-status": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Auth/refresh": {
       "post": {
         "tags": [

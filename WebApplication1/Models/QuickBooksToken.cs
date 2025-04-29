@@ -40,6 +40,10 @@ namespace WebApplication1.Models
 
             public string? Company { get; set; }
         }
- 
+    public class TokenStatusResponse
+    {
+        public bool Xero { get; set; }
+        public bool QuickBooks { get; set; }
+    }
 }
 

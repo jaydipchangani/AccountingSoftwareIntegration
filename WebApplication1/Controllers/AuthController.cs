@@ -262,8 +262,12 @@ namespace WebApplication1.Controllers
                     }
 
                     var customersToDelete = await _dbContext.Customers
-                        .Where(c => xeroUserIds.Contains(c.QuickBooksUserId))
-                        .ToListAsync();
+     .Where(c => c.Company == "Xero")
+     .ToListAsync();
+
+                    _dbContext.Customers.RemoveRange(customersToDelete);
+                    await _dbContext.SaveChangesAsync();
+
 
                     if (customersToDelete.Any())
                     {
@@ -289,7 +293,23 @@ namespace WebApplication1.Controllers
 
         }
 
+        [HttpGet("token-status")]
+        public IActionResult GetTokenStatus()
+        {
+            var hasXeroToken = _context.QuickBooksTokens
+                .Any(t => t.Company == "Xero" && t.AccessToken != null && t.TenantId != null);
 
+            var hasQuickBooksToken = _context.QuickBooksTokens
+                .Any(t => t.Company == "QBO" && t.AccessToken != null && t.RealmId != null);
+
+            var result = new TokenStatusResponse
+            {
+                Xero = hasXeroToken,
+                QuickBooks = hasQuickBooksToken
+            };
+
+            return Ok(result);
+        }
 
 
         [HttpPost("refresh")]

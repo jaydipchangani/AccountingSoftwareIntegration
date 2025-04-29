@@ -91,7 +91,6 @@ public class XeroAuthService
         var tokenData = JsonSerializer.Deserialize<JsonElement>(json);
         var accessToken = tokenData.GetProperty("access_token").GetString();
 
-        // --- Fetch the TenantId from the /connections API ---
         var connectionsRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.xero.com/connections");
         connectionsRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         connectionsRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
