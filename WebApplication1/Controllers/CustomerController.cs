@@ -26,25 +26,38 @@ namespace WebApplication1.Controllers
 
         [HttpGet("fetch-customer-from-db-paginated")]
         public async Task<IActionResult> FetchCustomersFromDbPaginated(
+    string company,  // <<-- still required
     int page = 1,
     int pageSize = 10,
     string? searchTerm = null)
         {
             try
             {
-                var tokenRecord = await _dbContext.QuickBooksTokens
-                    .Where(t => t.Company == "QBO")
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+                if (string.IsNullOrWhiteSpace(company))
+                    return BadRequest("Company parameter is required.");
 
-                if (tokenRecord == null)
-                    return NotFound("No QuickBooks token found.");
+                if (!company.Equals("All", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Check if token exists only if specific company is selected (not All)
+                    var tokenRecord = await _dbContext.QuickBooksTokens
+                        .Where(t => t.Company == company)
+                        .OrderByDescending(t => t.CreatedAt)
+                        .FirstOrDefaultAsync();
 
-                // Fetch customers where QuickBooksUserId matches or is empty
-                var query = _dbContext.Customers.AsQueryable(); // No filtering
+                    if (tokenRecord == null)
+                        return NotFound($"No token found for company: {company}");
+                }
 
+                // Start query
+                var query = _dbContext.Customers.AsQueryable();
 
-                // Apply search if needed
+                // Apply company filter only if not All
+                if (!company.Equals("All", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(c => c.Company == company);
+                }
+
+                // Apply search filter if needed
                 if (!string.IsNullOrWhiteSpace(searchTerm))
                 {
                     string likeTerm = $"%{searchTerm}%";
@@ -54,24 +67,24 @@ namespace WebApplication1.Controllers
                         EF.Functions.Like(c.Phone, likeTerm));
                 }
 
-                // Count total records
+                // Total records
                 var totalRecords = await query.CountAsync();
 
-                // Get paginated data (no manual select, fetch full Customer model)
+                // Paginate
                 var pagedData = await query
                     .OrderBy(c => c.DisplayName)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // Construct response
+                // Prepare response
                 var response = new
                 {
                     TotalRecords = totalRecords,
                     TotalPages = (int)Math.Ceiling((double)totalRecords / pageSize),
                     CurrentPage = page,
                     PageSize = pageSize,
-                    Data = pagedData  // Full Customer data
+                    Data = pagedData
                 };
 
                 return Ok(response);
@@ -81,6 +94,8 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, $"Error fetching customers: {ex.Message}");
             }
         }
+
+
 
 
 
