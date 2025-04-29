@@ -22,7 +22,7 @@ namespace WebApplication1.Services
         private readonly ApplicationDbContext _context;
         private readonly HttpClient _httpClient;
 
-        public XeroService(IConfiguration configuration, ApplicationDbContext context,HttpClient httpClient)
+        public XeroService(IConfiguration configuration, ApplicationDbContext context, HttpClient httpClient)
         {
             _configuration = configuration;
             _context = context;
@@ -63,11 +63,9 @@ namespace WebApplication1.Services
 
                 if (xeroContacts?.Contacts != null)
                 {
-                    // 🔥 Remove all existing "Xero" customers before inserting fresh data
                     var existingXeroCustomers = _context.Customers.Where(c => c.Company == "Xero");
                     _context.Customers.RemoveRange(existingXeroCustomers);
 
-                    // 💾 Insert updated contact list
                     foreach (var xeroContact in xeroContacts.Contacts)
                     {
                         var address = xeroContact.Addresses?.FirstOrDefault(a => a.AddressType == "POBOX")
@@ -224,28 +222,29 @@ namespace WebApplication1.Services
             {
                 Contacts = new[]
                 {
-                new
+            new
+            {
+                ContactID = dto.ContactID,
+                Name = dto.DisplayName ?? $"{dto.GivenName} {dto.FamilyName}".Trim(),
+                EmailAddress = dto.Email,
+                Phones = dto.Phones?.Select(p => new
                 {
-                    ContactID = dto.ContactID,
-                    Name = dto.DisplayName ?? $"{dto.GivenName} {dto.FamilyName}".Trim(),
-                    EmailAddress = dto.Email,
-                    Phones = dto.Phones?.Select(p => new
-                    {
-                        PhoneType = p.PhoneType,
-                        PhoneNumber = p.PhoneNumber,
-                        PhoneAreaCode = p.PhoneAreaCode,
-                        PhoneCountryCode = p.PhoneCountryCode ?? ""
-                    }).ToList(),
-                    Addresses = dto.Addresses?.Select(a => new
-                    {
-                        AddressType = a.AddressType,
-                        City = a.City ?? "",
-                        Region = a.Region ?? "",
-                        PostalCode = a.PostalCode ?? "",
-                        Country = a.Country ?? ""
-                    }).ToList()
-                }
+                    PhoneType = p.PhoneType,
+                    PhoneNumber = p.PhoneNumber,
+                    PhoneAreaCode = p.PhoneAreaCode,
+                    PhoneCountryCode = p.PhoneCountryCode ?? ""
+                }).ToList(),
+                Addresses = dto.Addresses?.Select(a => new
+                {
+                    AddressType = a.AddressType,
+                    //AddressLine1 = a.AddressLine1 ?? "",
+                    City = a.City ?? "",
+                    Region = a.Region ?? "",
+                    PostalCode = a.PostalCode ?? "",
+                    Country = a.Country ?? ""
+                }).ToList()
             }
+        }
             };
 
             var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Contacts/{dto.ContactID}")
@@ -272,15 +271,35 @@ namespace WebApplication1.Services
             if (contact != null)
             {
                 var email = contact["EmailAddress"]?.ToString();
+                var name = contact["Name"]?.ToString();
+                var addresses = contact["Addresses"] as JArray;
+
+                // Get POBOX or fallback to STREET
+                var address = addresses?.FirstOrDefault(a => a["AddressType"]?.ToString() == "POBOX") ??
+                              addresses?.FirstOrDefault(a => a["AddressType"]?.ToString() == "STREET");
+
+                var line1 = address?["AddressLine1"]?.ToString() ?? "";
+                var city = address?["City"]?.ToString() ?? "";
+                var region = address?["Region"]?.ToString() ?? "";
+                var postalCode = address?["PostalCode"]?.ToString() ?? "";
+                var country = address?["Country"]?.ToString() ?? "";
+
                 var existingCustomer = await _context.Customers.FirstOrDefaultAsync(c => c.ContactID == dto.ContactID);
 
                 if (existingCustomer != null)
                 {
-                    existingCustomer.DisplayName = contact["Name"]?.ToString();
+                    existingCustomer.DisplayName = name;
                     existingCustomer.Email = email;
                     existingCustomer.ContactID = dto.ContactID;
                     existingCustomer.Phones = JsonConvert.SerializeObject(dto.Phones);
                     existingCustomer.Addresses = JsonConvert.SerializeObject(dto.Addresses);
+
+                    existingCustomer.BillingLine1 = line1;
+                    existingCustomer.BillingCity = city;
+                    existingCustomer.BillingState = region;
+                    existingCustomer.BillingPostalCode = postalCode;
+                    existingCustomer.BillingCountry = country;
+
                     existingCustomer.UpdatedAt = DateTime.UtcNow;
 
                     await _context.SaveChangesAsync();
@@ -289,6 +308,7 @@ namespace WebApplication1.Services
 
             return true;
         }
+
 
 
         public async Task<string> ArchiveContactAsync(string contactId)
@@ -342,40 +362,6 @@ namespace WebApplication1.Services
         }
 
 
-
-    }
-
-    public class XeroContactResponse
-    {
-        public List<XeroContact> Contacts { get; set; }
-    }
-
-    public class XeroContact
-    {
-        public string ContactID { get; set; }
-        public string Name { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string EmailAddress { get; set; }
-
-        [JsonProperty("ContactStatus")]
-        public string ContactStatus { get; set; }
-        public List<XeroPhone> Phones { get; set; }
-        public List<XeroAddress> Addresses { get; set; }
-    }
-
-    public class XeroPhone
-    {
-        public string PhoneNumber { get; set; }
-    }
-
-    public class XeroAddress
-    {
-        public string AddressType { get; set; }
-        public string AddressLine { get; set; }
-        public string City { get; set; }
-        public string Region { get; set; }
-        public string PostalCode { get; set; }
-        public string Country { get; set; }
     }
 }
+

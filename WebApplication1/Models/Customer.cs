@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 
 namespace WebApplication1.Models
 {
@@ -112,4 +113,41 @@ namespace WebApplication1.Models
 
         public decimal? Discount { get; set; } = 0 ;
     }
+
+
+    public class XeroContactResponse
+    {
+        public List<XeroContact> Contacts { get; set; }
+    }
+
+    public class XeroContact
+    {
+        public string ContactID { get; set; }
+        public string Name { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string EmailAddress { get; set; }
+
+        [JsonProperty("ContactStatus")]
+        public string ContactStatus { get; set; }
+        public List<XeroPhone> Phones { get; set; }
+        public List<XeroAddress> Addresses { get; set; }
+    }
+
+    public class XeroPhone
+    {
+        public string PhoneNumber { get; set; }
+    }
+
+    public class XeroAddress
+    {
+        public string AddressType { get; set; }
+        public string AddressLine { get; set; }
+        public string City { get; set; }
+        public string Region { get; set; }
+        public string PostalCode { get; set; }
+        public string Country { get; set; }
+    }
 }
+
+
