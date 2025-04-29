@@ -50,20 +50,40 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpPost("deactivate-contact/{contactId}")]
-        public async Task<IActionResult> DeactivateContact(string contactId)
+
+        [HttpPost("update-customer")]
+        public async Task<IActionResult> UpdateCustomerInXero([FromBody] UpdateCustomerInXeroDto dto)
         {
             try
             {
-                // Call the service to deactivate the contact in Xero
-                await _xeroService.DeactivateContactAsync(contactId);
-                return Ok("Contact deactivated successfully.");
+                if (string.IsNullOrWhiteSpace(dto.ContactID))
+                    return BadRequest("ContactID is required.");
+
+                await _xeroService.UpdateCustomerInXeroAsync(dto);
+                return Ok("Customer updated successfully in Xero and saved to local DB.");
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error: {ex.Message}");
+                return StatusCode(500, $"Update failed: {ex.Message}");
             }
         }
+
+
+
+        [HttpPost("archive-contact/{contactId}")]
+        public async Task<IActionResult> ArchiveContact(string contactId)
+        {
+            try
+            {
+                var result = await _xeroService.ArchiveContactAsync(contactId);
+                return Ok($"Contact {contactId} archived successfully. Response: {result}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Archiving failed: {ex.Message}");
+            }
+        }
+
 
 
     }

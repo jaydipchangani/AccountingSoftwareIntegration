@@ -31,6 +31,18 @@
             public string? Country { get; set; }
         }
 
+        public class UpdateCustomerInXeroDto
+        {
+            public string ContactID { get; set; } = string.Empty; // Required
+            public string? DisplayName { get; set; }
+            public string? GivenName { get; set; }
+            public string? FamilyName { get; set; }
+            public string? Email { get; set; }
+
+            public List<PhoneDto>? Phones { get; set; }
+            public List<AddressDto>? Addresses { get; set; }
+        }
+
     }
 
 }
