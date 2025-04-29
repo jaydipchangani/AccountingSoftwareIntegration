@@ -31,7 +31,6 @@ namespace WebApplication1.Services
 
         public async Task SyncXeroContactsAsync()
         {
-            // Get the Xero Token, Tenant ID, and Scope from the database
             var xeroToken = await _context.QuickBooksTokens
                 .Where(t => t.Company == "Xero")
                 .OrderByDescending(t => t.CreatedAt)
@@ -44,24 +43,21 @@ namespace WebApplication1.Services
 
             var token = xeroToken.AccessToken;
             var tenantId = xeroToken.TenantId;
-            var scope = xeroToken.Scope;
 
             using (var client = new HttpClient())
             {
-                // Set authorization and tenant headers
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
                 client.DefaultRequestHeaders.Add("Xero-Tenant-Id", tenantId);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
 
-                // Make the API call to Xero
                 var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Contacts");
+
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorResponse = await response.Content.ReadAsStringAsync();
                     throw new Exception($"Xero API request failed: {response.StatusCode} - {errorResponse}");
                 }
 
-                // Deserialize the response content using Newtonsoft.Json
                 var responseContent = await response.Content.ReadAsStringAsync();
                 var xeroContacts = JsonConvert.DeserializeObject<XeroContactResponse>(responseContent);
 
@@ -72,7 +68,6 @@ namespace WebApplication1.Services
                         var existingCustomer = await _context.Customers
                             .FirstOrDefaultAsync(c => c.ContactID == xeroContact.ContactID);
 
-                        // Try to get POBOX address first, otherwise use STREET
                         var address = xeroContact.Addresses?.FirstOrDefault(a => a.AddressType == "POBOX")
                                    ?? xeroContact.Addresses?.FirstOrDefault(a => a.AddressType == "STREET");
 
@@ -82,6 +77,9 @@ namespace WebApplication1.Services
                         string postalCode = address?.PostalCode ?? string.Empty;
                         string country = address?.Country ?? string.Empty;
 
+                        // Determine Active: 1 if not ARCHIVED, else 0
+                        bool isActive = !string.Equals(xeroContact.ContactStatus, "ARCHIVED", StringComparison.OrdinalIgnoreCase);
+
                         if (existingCustomer != null)
                         {
                             existingCustomer.DisplayName = xeroContact.Name ?? string.Empty;
@@ -90,14 +88,13 @@ namespace WebApplication1.Services
                             existingCustomer.Email = xeroContact.EmailAddress ?? string.Empty;
                             existingCustomer.Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty;
 
-                            // Map address fields to Billing info
                             existingCustomer.BillingLine1 = line1;
                             existingCustomer.BillingCity = city;
                             existingCustomer.BillingState = region;
                             existingCustomer.BillingPostalCode = postalCode;
                             existingCustomer.BillingCountry = country;
 
-                            existingCustomer.Active = true;
+                            existingCustomer.Active = isActive;
                             existingCustomer.UpdatedAt = DateTime.UtcNow;
                         }
                         else
@@ -111,14 +108,13 @@ namespace WebApplication1.Services
                                 Email = xeroContact.EmailAddress ?? string.Empty,
                                 Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
 
-                                // Map address fields to Billing info
                                 BillingLine1 = line1,
                                 BillingCity = city,
                                 BillingState = region,
                                 BillingPostalCode = postalCode,
                                 BillingCountry = country,
 
-                                Active = true,
+                                Active = isActive,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow,
                                 Company = "Xero"
@@ -138,9 +134,9 @@ namespace WebApplication1.Services
                         throw new Exception($"Error syncing Xero contacts: {ex.Message} - Inner Exception: {innerException}");
                     }
                 }
-
             }
         }
+
 
         public async Task<(string accessToken, string tenantId)> GetXeroAuthDetailsAsync()
         {
@@ -343,7 +339,24 @@ namespace WebApplication1.Services
                 throw new Exception($"Archiving in Xero failed: {response.StatusCode} - {errorContent}");
             }
 
-            return await response.Content.ReadAsStringAsync();
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"Archiving in Xero failed: {response.StatusCode} - {responseBody}");
+            }
+
+            // Check if the contact was updated to ARCHIVED
+            var responseObj = JsonConvert.DeserializeObject<XeroContactResponse>(responseBody);
+            var archivedContact = responseObj?.Contacts?.FirstOrDefault();
+
+            if (archivedContact?.ContactStatus != "ARCHIVED")
+            {
+                throw new Exception($"Xero responded with 200 but ContactStatus is '{archivedContact?.ContactStatus}'. Contact may be in use or already archived.");
+            }
+
+            return responseBody;
+
         }
 
 
@@ -362,6 +375,9 @@ namespace WebApplication1.Services
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string EmailAddress { get; set; }
+
+        [JsonProperty("ContactStatus")]
+        public string ContactStatus { get; set; }
         public List<XeroPhone> Phones { get; set; }
         public List<XeroAddress> Addresses { get; set; }
     }
