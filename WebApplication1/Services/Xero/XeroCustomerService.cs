@@ -69,34 +69,36 @@ namespace WebApplication1.Services
                         var existingCustomer = await _context.Customers
                             .FirstOrDefaultAsync(c => c.ContactID == xeroContact.ContactID);
 
+                        // Try to get POBOX address first, otherwise use STREET
+                        var address = xeroContact.Addresses?.FirstOrDefault(a => a.AddressType == "POBOX")
+                                   ?? xeroContact.Addresses?.FirstOrDefault(a => a.AddressType == "STREET");
+
+                        string line1 = address?.AddressLine ?? string.Empty;
+                        string city = address?.City ?? string.Empty;
+                        string region = address?.Region ?? string.Empty;
+                        string postalCode = address?.PostalCode ?? string.Empty;
+                        string country = address?.Country ?? string.Empty;
+
                         if (existingCustomer != null)
                         {
-                            // Update the existing customer
                             existingCustomer.DisplayName = xeroContact.Name ?? string.Empty;
                             existingCustomer.GivenName = xeroContact.FirstName ?? string.Empty;
                             existingCustomer.FamilyName = xeroContact.LastName ?? string.Empty;
                             existingCustomer.Email = xeroContact.EmailAddress ?? string.Empty;
-
-                            // Concatenate phone numbers into a comma-separated string
                             existingCustomer.Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty;
 
-                            // Handle addresses (using JSON string or comma-separated string)
-                            if (xeroContact.Addresses != null)
-                            {
-                                existingCustomer.Addresses = JsonConvert.SerializeObject(xeroContact.Addresses);
-                            }
-                            else
-                            {
-                                existingCustomer.Addresses = string.Empty;
-                            }
+                            // Map address fields to Billing info
+                            existingCustomer.BillingLine1 = line1;
+                            existingCustomer.BillingCity = city;
+                            existingCustomer.BillingState = region;
+                            existingCustomer.BillingPostalCode = postalCode;
+                            existingCustomer.BillingCountry = country;
 
-                            // Update other fields
                             existingCustomer.Active = true;
                             existingCustomer.UpdatedAt = DateTime.UtcNow;
                         }
                         else
                         {
-                            // Mapping Xero Contact data to the local Customer model
                             var newCustomer = new Customer
                             {
                                 ContactID = xeroContact.ContactID,
@@ -104,12 +106,14 @@ namespace WebApplication1.Services
                                 GivenName = xeroContact.FirstName ?? string.Empty,
                                 FamilyName = xeroContact.LastName ?? string.Empty,
                                 Email = xeroContact.EmailAddress ?? string.Empty,
-
-                                // Concatenate phone numbers into a comma-separated string
                                 Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
 
-                                // Handle addresses (using JSON string or comma-separated string)
-                                Addresses = xeroContact.Addresses != null ? JsonConvert.SerializeObject(xeroContact.Addresses) : string.Empty,
+                                // Map address fields to Billing info
+                                BillingLine1 = line1,
+                                BillingCity = city,
+                                BillingState = region,
+                                BillingPostalCode = postalCode,
+                                BillingCountry = country,
 
                                 Active = true,
                                 CreatedAt = DateTime.UtcNow,
@@ -117,14 +121,12 @@ namespace WebApplication1.Services
                                 Company = "Xero"
                             };
 
-                            // Add the new customer to the context
                             _context.Customers.Add(newCustomer);
                         }
                     }
 
                     try
                     {
-                        // Save changes to the database
                         await _context.SaveChangesAsync();
                     }
                     catch (Exception ex)
@@ -133,6 +135,7 @@ namespace WebApplication1.Services
                         throw new Exception($"Error syncing Xero contacts: {ex.Message} - Inner Exception: {innerException}");
                     }
                 }
+
             }
         }
 
