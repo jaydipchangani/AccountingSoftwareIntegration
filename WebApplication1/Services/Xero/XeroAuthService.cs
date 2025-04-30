@@ -159,6 +159,19 @@ public class XeroAuthService
         return existingToken;
     }
 
+    public async Task<bool> LogoutFromXeroAsync()
+    {
+        var token = await _db.QuickBooksTokens
+            .FirstOrDefaultAsync(t => t.Company == "Xero");
 
+        if (token == null)
+        {
+            return false; // No token to delete
+        }
+
+        _db.QuickBooksTokens.Remove(token);
+        await _db.SaveChangesAsync();
+        return true;
+    }
 
 }

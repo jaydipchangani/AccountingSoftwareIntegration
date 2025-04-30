@@ -47,6 +47,16 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.AuthController",
+    "Method": "LogoutFromQBO",
+    "RelativePath": "api/Auth/logoutFromQBO",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.AuthController",
     "Method": "RefreshTokenAsync",
     "RelativePath": "api/Auth/refresh",
     "HttpMethod": "POST",
@@ -695,6 +705,16 @@
     "ContainingType": "XeroAuthController",
     "Method": "Login",
     "RelativePath": "api/XeroAuth/login",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "XeroAuthController",
+    "Method": "Logout",
+    "RelativePath": "api/XeroAuth/logout",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,

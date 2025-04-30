@@ -393,6 +393,23 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet("logoutFromQBO")]
+        public async Task<IActionResult> LogoutFromQBO()
+        {
+            var token = await _context.QuickBooksTokens
+                .FirstOrDefaultAsync(t => t.Company == "QBO");
+
+            if (token == null)
+            {
+                return NotFound(new { message = "No QuickBooks token found to logout." });
+            }
+
+            _context.QuickBooksTokens.Remove(token);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Successfully logged out from QuickBooks." });
+        }
+
 
     }
 }

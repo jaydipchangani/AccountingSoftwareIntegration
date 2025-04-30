@@ -96,6 +96,18 @@
         }
       }
     },
+    "/api/Auth/logoutFromQBO": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Bill/sync-from-qbo": {
       "get": {
         "tags": [
@@ -1121,6 +1133,18 @@
               "type": "string"
             }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/XeroAuth/logout": {
+      "get": {
+        "tags": [
+          "XeroAuth"
         ],
         "responses": {
           "200": {

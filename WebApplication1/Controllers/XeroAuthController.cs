@@ -36,4 +36,19 @@ public class XeroAuthController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+
+    [HttpGet("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        var success = await _xeroService.LogoutFromXeroAsync();
+
+        if (!success)
+        {
+            return NotFound(new { message = "No Xero token found to logout." });
+        }
+
+        return Ok(new { message = "Successfully logged out from Xero." });
+    }
+
 }
