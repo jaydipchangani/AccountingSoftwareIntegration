@@ -256,7 +256,12 @@ namespace WebApplication1.Services
         }
             };
 
-            var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Contacts/{dto.ContactID}")
+
+
+            string baseUrl = _configuration["XeroBaseUrl"];
+            string fullUrl = $"{baseUrl}/Contacts/{dto.ContactID}";
+
+            var request = new HttpRequestMessage(HttpMethod.Post, fullUrl)
             {
                 Content = new StringContent(JsonConvert.SerializeObject(xeroPayload), Encoding.UTF8, "application/json")
             };
@@ -266,6 +271,7 @@ namespace WebApplication1.Services
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             var response = await _httpClient.SendAsync(request);
+
 
             if (!response.IsSuccessStatusCode)
             {
@@ -336,7 +342,12 @@ namespace WebApplication1.Services
             }
             };
 
-            var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Contacts/{contactId}");
+
+            string baseUrl = _configuration["XeroBaseUrl"];
+            string fullUrl = $"{baseUrl}/Contacts/{contactId}";
+
+
+            var request = new HttpRequestMessage(HttpMethod.Post,fullUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             request.Headers.Add("Xero-Tenant-Id", tenantId);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
