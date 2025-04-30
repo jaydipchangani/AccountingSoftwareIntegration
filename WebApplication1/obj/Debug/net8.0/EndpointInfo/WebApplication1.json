@@ -84,30 +84,6 @@
         }
       }
     },
-    "/api/Auth/refresh": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Auth/logoutFromQBO": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/Bill/sync-from-qbo": {
       "get": {
         "tags": [
