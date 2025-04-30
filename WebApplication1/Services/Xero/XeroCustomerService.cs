@@ -214,7 +214,8 @@ namespace WebApplication1.Services
                 Addresses = JsonConvert.SerializeObject(dto.Addresses),
                 Company = "Xero",
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                Active = true
             };
 
             _context.Customers.Add(customer);
@@ -334,33 +335,24 @@ namespace WebApplication1.Services
             {
                 Contacts = new[]
                 {
-                new
-                {
-                    ContactID = contactId,
-                    ContactStatus = "ARCHIVED"
-                }
+            new
+            {
+                ContactID = contactId,
+                ContactStatus = "ARCHIVED"
             }
+        }
             };
-
 
             string baseUrl = _configuration["XeroBaseUrl"];
             string fullUrl = $"{baseUrl}/Contacts/{contactId}";
 
-
-            var request = new HttpRequestMessage(HttpMethod.Post,fullUrl);
+            var request = new HttpRequestMessage(HttpMethod.Post, fullUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             request.Headers.Add("Xero-Tenant-Id", tenantId);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
 
             var response = await _httpClient.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Archiving in Xero failed: {response.StatusCode} - {errorContent}");
-            }
-
             var responseBody = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -368,7 +360,6 @@ namespace WebApplication1.Services
                 throw new Exception($"Archiving in Xero failed: {response.StatusCode} - {responseBody}");
             }
 
-            // Check if the contact was updated to ARCHIVED
             var responseObj = JsonConvert.DeserializeObject<XeroContactResponse>(responseBody);
             var archivedContact = responseObj?.Contacts?.FirstOrDefault();
 
@@ -377,9 +368,18 @@ namespace WebApplication1.Services
                 throw new Exception($"Xero responded with 200 but ContactStatus is '{archivedContact?.ContactStatus}'. Contact may be in use or already archived.");
             }
 
-            return responseBody;
+            var localCustomer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.ContactID == contactId && c.Company == "Xero");
 
+            if (localCustomer != null)
+            {
+                _context.Customers.Remove(localCustomer);
+                await _context.SaveChangesAsync();
+            }
+
+            return responseBody;
         }
+
 
 
     }
