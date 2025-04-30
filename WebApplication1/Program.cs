@@ -4,9 +4,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using WebApplication1.Services;
+using WebApplication1.Models.Xero;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.Configure<XeroApiOptions>(builder.Configuration.GetSection("XeroApi"));
+
+
+
 builder.Services.AddScoped<TokenService>();
 
 builder.Services.AddScoped<VendorSyncService>();

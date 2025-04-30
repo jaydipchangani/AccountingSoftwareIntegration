@@ -13,6 +13,8 @@ using System.Text;
 using System.Net.Http.Headers;
 using WebApplication1.Models.Xero.WebApplication1.Dtos;
 using Newtonsoft.Json.Linq;
+using WebApplication1.Models.Xero;
+using Microsoft.Extensions.Options;
 
 namespace WebApplication1.Services
 {
@@ -21,12 +23,14 @@ namespace WebApplication1.Services
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _context;
         private readonly HttpClient _httpClient;
+        private readonly XeroApiOptions _xeroOptions;
 
-        public XeroService(IConfiguration configuration, ApplicationDbContext context, HttpClient httpClient)
+        public XeroService(IConfiguration configuration, ApplicationDbContext context, HttpClient httpClient, IOptions<XeroApiOptions> xeroOptions)
         {
             _configuration = configuration;
             _context = context;
             _httpClient = httpClient;
+            _xeroOptions = xeroOptions.Value;
         }
 
         public async Task SyncXeroContactsAsync()
@@ -50,8 +54,7 @@ namespace WebApplication1.Services
                 client.DefaultRequestHeaders.Add("Xero-Tenant-Id", tenantId);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
 
-                string baseUrl = _configuration["XeroBaseUrl"];
-                string fullUrl = $"{baseUrl}/Contacts";
+                string fullUrl = $"{_xeroOptions.BaseUrl}/Contacts";
 
                 var response = await client.GetAsync(fullUrl);
 
@@ -121,7 +124,6 @@ namespace WebApplication1.Services
         }
 
 
-
         public async Task<(string accessToken, string tenantId)> GetXeroAuthDetailsAsync()
         {
             // Fetch the most recent Xero token and tenant ID from the database
@@ -181,8 +183,8 @@ namespace WebApplication1.Services
             var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
 
 
-            string baseUrl = _configuration["XeroBaseUrl"];
-            string fullUrl = $"{baseUrl}/Contacts";
+
+            string fullUrl = $"{_xeroOptions.BaseUrl}/Contacts";
 
 
             var response = await httpClient.PostAsync(fullUrl, content);
@@ -224,6 +226,7 @@ namespace WebApplication1.Services
             return contactId;
         }
 
+
         public async Task<bool> UpdateCustomerInXeroAsync(UpdateCustomerInXeroDto dto)
         {
             var (accessToken, tenantId) = await GetXeroAuthDetailsAsync();
@@ -258,9 +261,8 @@ namespace WebApplication1.Services
             };
 
 
+            string fullUrl = $"{_xeroOptions.BaseUrl}/Contacts/{dto.ContactID}";
 
-            string baseUrl = _configuration["XeroBaseUrl"];
-            string fullUrl = $"{baseUrl}/Contacts/{dto.ContactID}";
 
             var request = new HttpRequestMessage(HttpMethod.Post, fullUrl)
             {
@@ -343,8 +345,7 @@ namespace WebApplication1.Services
         }
             };
 
-            string baseUrl = _configuration["XeroBaseUrl"];
-            string fullUrl = $"{baseUrl}/Contacts/{contactId}";
+            string fullUrl = $"{_xeroOptions.BaseUrl}/Contacts/{contactId}";
 
             var request = new HttpRequestMessage(HttpMethod.Post, fullUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
