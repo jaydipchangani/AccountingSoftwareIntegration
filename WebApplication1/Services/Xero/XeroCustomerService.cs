@@ -367,15 +367,17 @@ namespace WebApplication1.Services
             {
                 throw new Exception($"Xero responded with 200 but ContactStatus is '{archivedContact?.ContactStatus}'. Contact may be in use or already archived.");
             }
-
             var localCustomer = await _context.Customers
                 .FirstOrDefaultAsync(c => c.ContactID == contactId && c.Company == "Xero");
 
             if (localCustomer != null)
             {
-                _context.Customers.Remove(localCustomer);
+                localCustomer.Active = false; 
+                localCustomer.UpdatedAt = DateTime.UtcNow;
+
                 await _context.SaveChangesAsync();
             }
+
 
             return responseBody;
         }
