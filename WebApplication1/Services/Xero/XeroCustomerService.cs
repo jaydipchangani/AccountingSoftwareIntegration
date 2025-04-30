@@ -90,7 +90,7 @@ namespace WebApplication1.Services
                             GivenName = xeroContact.FirstName ?? string.Empty,
                             FamilyName = xeroContact.LastName ?? string.Empty,
                             Email = xeroContact.EmailAddress ?? string.Empty,
-                            Phone = xeroContact.Phones != null ? string.Join(", ", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
+                            Phone = xeroContact.Phones != null ? string.Join("", xeroContact.Phones.Select(p => p.PhoneNumber ?? string.Empty)) : string.Empty,
 
                             BillingLine1 = line1,
                             BillingCity = city,
