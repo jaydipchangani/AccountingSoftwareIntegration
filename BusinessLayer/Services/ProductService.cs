@@ -290,6 +290,80 @@ public class ProductService
     }
 
 
+    public async Task UpdateProductInXeroAndDbAsync(string itemId, Product product)
+    {
+        var (accessToken, tenantId) = await GetXeroAuthDetailsAsync();
+
+        object itemPayload;
+
+        if (product.IsTrackedAsInventory)
+        {
+            itemPayload = new
+            {
+                Code = product.Code,
+                Name = product.Name,
+                Description = product.Description,
+                InventoryAssetAccountCode = product.AssetAccount,
+                PurchaseDetails = new
+                {
+                    COGSAccountCode = product.PurchaseCOGSAccountCode,
+                    UnitPrice = product.PurchaseUnitPrice ?? 0
+                },
+                SalesDetails = new
+                {
+                    UnitPrice = product.SalesUnitPrice ?? 0,
+                    AccountCode = product.SalesAccountCode
+                }
+            };
+        }
+        else
+        {
+            itemPayload = new
+            {
+                Code = product.Code,
+                Name = product.Name,
+                Description = product.Description
+            };
+        }
+
+        var json = JsonConvert.SerializeObject(new { Items = new[] { itemPayload } });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Items/{itemId}")
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Add("Xero-Tenant-Id", tenantId);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        var response = await _httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to update item in Xero. Status: {response.StatusCode}, Error: {error}");
+        }
+
+        // Update product in local DB
+        var existing = await _context.Products.FirstOrDefaultAsync(p => p.QuickBooksItemId == itemId);
+        if (existing != null)
+        {
+            existing.Code = product.Code;
+            existing.Name = product.Name;
+            existing.Description = product.Description;
+            existing.IsTrackedAsInventory = product.IsTrackedAsInventory;
+            existing.AssetAccount = product.AssetAccount;
+            existing.PurchaseCOGSAccountCode = product.PurchaseCOGSAccountCode;
+            existing.PurchaseUnitPrice = product.PurchaseUnitPrice;
+            existing.SalesUnitPrice = product.SalesUnitPrice;
+            existing.SalesAccountCode = product.SalesAccountCode;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            _context.Products.Update(existing);
+            await _context.SaveChangesAsync();
+        }
+    }
 
 
 

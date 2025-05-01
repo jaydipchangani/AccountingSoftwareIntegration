@@ -458,6 +458,27 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "UpdateProduct",
+    "RelativePath": "api/Products/xero-update-product/{itemId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "itemId",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "product",
+        "Type": "WebApplication1.Models.Product",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "WebApplication1.Controllers.QuickBooksController",
     "Method": "FetchChartOfAccountsFromQuickBooks",
     "RelativePath": "api/QuickBooks/fetch-chart-of-accounts-from-quickbooks",

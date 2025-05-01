@@ -586,6 +586,20 @@ namespace WebApplication1.Controllers
         }
 
 
+        [HttpPost("xero-update-product/{itemId}")]
+        public async Task<IActionResult> UpdateProduct(string itemId, [FromBody] Product product)
+        {
+            try
+            {
+                await _productService.UpdateProductInXeroAndDbAsync(itemId, product);
+                return Ok(new { message = "Product updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
         #endregion
 
 
