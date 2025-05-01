@@ -366,5 +366,29 @@ public class ProductService
     }
 
 
+    public async Task DeleteProductFromXeroAndDbAsync(string itemId)
+    {
+        var (accessToken, tenantId) = await GetXeroAuthDetailsAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, $"https://api.xero.com/api.xro/2.0/Items/{itemId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Add("xero-tenant-id", tenantId);
+
+        var response = await _httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to delete product from Xero. Status: {response.StatusCode}. Details: {errorContent}");
+        }
+
+        // Delete from local database if needed
+        var localProduct = await _context.Products.FirstOrDefaultAsync(p => p.QuickBooksItemId == itemId);
+        if (localProduct != null)
+        {
+            _context.Products.Remove(localProduct);
+            await _context.SaveChangesAsync();
+        }
+    }
 
 }

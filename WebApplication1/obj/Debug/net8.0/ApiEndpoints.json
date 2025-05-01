@@ -438,6 +438,22 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "DeleteProduct",
+    "RelativePath": "api/Products/xero-delete-product/{itemId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "itemId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
     "Method": "GetProducts",
     "RelativePath": "api/Products/xero-get-all-products",
     "HttpMethod": "GET",

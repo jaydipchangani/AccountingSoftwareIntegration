@@ -600,6 +600,23 @@ namespace WebApplication1.Controllers
             }
         }
 
+
+        [HttpDelete("xero-delete-product/{itemId}")]
+        public async Task<IActionResult> DeleteProduct(string itemId)
+        {
+            try
+            {
+                await _productService.DeleteProductFromXeroAndDbAsync(itemId);
+                return Ok(new { message = "Product deleted successfully from Xero and local database." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+
+
         #endregion
 
 

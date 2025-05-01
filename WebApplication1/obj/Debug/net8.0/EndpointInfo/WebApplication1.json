@@ -796,6 +796,28 @@
         }
       }
     },
+    "/api/Products/xero-delete-product/{itemId}": {
+      "delete": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/QuickBooks/fetch-from-db": {
       "get": {
         "tags": [
