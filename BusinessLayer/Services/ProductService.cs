@@ -216,24 +216,36 @@ public class ProductService
 
         // Split products into inventory and service types
         var inventoryItems = products
-            .Where(p => p.IsTrackedAsInventory)
-            .Select(p => new
-            {
-                Code = p.Code,
-                Name = p.Name,
-                Description = p.Description,
-                InventoryAssetAccountCode = p.AssetAccount,
-                PurchaseDetails = new
-                {
-                    COGSAccountCode = p.PurchaseCOGSAccountCode,
-                    UnitPrice = p.PurchaseUnitPrice ?? 0
-                },
-                SalesDetails = new
-                {
-                    UnitPrice = p.SalesUnitPrice ?? 0,
-                    AccountCode = p.SalesAccountCode
-                }
-            }).ToList();
+     .Where(p => p.IsTrackedAsInventory)
+     .Select(p =>
+     {
+         var item = new Dictionary<string, object?>
+         {
+             ["Code"] = p.Code,
+             ["Name"] = p.Name,
+             ["Description"] = p.Description,
+             ["InventoryAssetAccountCode"] = p.AssetAccount
+         };
+
+         var purchase = new Dictionary<string, object?>();
+         if (!string.IsNullOrWhiteSpace(p.PurchaseCOGSAccountCode))
+             purchase["COGSAccountCode"] = p.PurchaseCOGSAccountCode;
+         if (p.PurchaseUnitPrice.HasValue)
+             purchase["UnitPrice"] = p.PurchaseUnitPrice.Value;
+         if (purchase.Any())
+             item["PurchaseDetails"] = purchase;
+
+         var sales = new Dictionary<string, object?>();
+         if (!string.IsNullOrWhiteSpace(p.SalesAccountCode))
+             sales["AccountCode"] = p.SalesAccountCode;
+         if (p.SalesUnitPrice.HasValue)
+             sales["UnitPrice"] = p.SalesUnitPrice.Value;
+         if (sales.Any())
+             item["SalesDetails"] = sales;
+
+         return item;
+     }).ToList();
+
 
         var serviceItems = products
             .Where(p => !p.IsTrackedAsInventory)
@@ -241,7 +253,8 @@ public class ProductService
             {
                 Code = p.Code,
                 Name = p.Name,
-                Description = p.Description
+                Description = p.Description,
+                isTrackedAsInventory = false
             }).ToList();
 
         // Send inventory items to Xero
@@ -259,13 +272,25 @@ public class ProductService
         // Save to local database
         foreach (var product in products)
         {
+            product.Price ??= 0;
+            product.Type = product.IsTrackedAsInventory ? "Inventory" : "Service";
             product.Platform = "Xero";
             product.CreatedAt = DateTime.UtcNow;
             product.UpdatedAt = DateTime.UtcNow;
             _context.Products.Add(product);
         }
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            // Log and inspect the inner exception
+            var innerMessage = ex.InnerException?.Message;
+            throw new Exception($"Error saving changes: {innerMessage}", ex);
+        }
+
     }
 
     private async Task SendItemsToXeroAsync(object itemsPayload, string accessToken, string tenantId)
@@ -288,7 +313,6 @@ public class ProductService
             throw new Exception($"Xero API Error: {response.StatusCode}, Details: {error}");
         }
     }
-
 
     public async Task UpdateProductInXeroAndDbAsync(string itemId, Product product)
     {
@@ -364,7 +388,6 @@ public class ProductService
             await _context.SaveChangesAsync();
         }
     }
-
 
     public async Task DeleteProductFromXeroAndDbAsync(string itemId)
     {

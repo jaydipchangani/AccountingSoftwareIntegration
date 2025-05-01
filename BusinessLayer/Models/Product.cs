@@ -11,10 +11,10 @@ namespace WebApplication1.Models
         public string? Code { get; set; }
         public string? Description { get; set; }
         public string? Platform { get; set; }
-        [Required] public string? Type { get; set; } // "Service" or "Inventory"
-        [Required] public decimal? Price { get; set; }
+         public string? Type { get; set; } // "Service" or "Inventory"
+         public decimal? Price { get; set; }
 
-        [Required] public string? IncomeAccount { get; set; }
+         public string? IncomeAccount { get; set; }
         public string? AssetAccount { get; set; }
         public string? ExpenseAccount { get; set; }
 
