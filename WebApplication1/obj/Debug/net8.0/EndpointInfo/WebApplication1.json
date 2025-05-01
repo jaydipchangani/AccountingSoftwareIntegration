@@ -684,7 +684,7 @@
         }
       }
     },
-    "/api/Products/xero": {
+    "/api/Products/xero-get-all-products": {
       "get": {
         "tags": [
           "Products"
@@ -708,6 +708,46 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Products/xero-add-product": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -1411,6 +1451,133 @@
             "nullable": true
           },
           "phoneCountryCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Product": {
+        "required": [
+          "incomeAccount",
+          "name",
+          "price",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "platform": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "incomeAccount": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "assetAccount": {
+            "type": "string",
+            "nullable": true
+          },
+          "expenseAccount": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantityOnHand": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "quickBooksItemId": {
+            "type": "string",
+            "nullable": true
+          },
+          "quickBooksUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "syncToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "incomeAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "assetAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "expenseAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isTrackedAsInventory": {
+            "type": "boolean"
+          },
+          "purchaseUnitPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "purchaseCOGSAccountCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "purchaseTaxType": {
+            "type": "string",
+            "nullable": true
+          },
+          "salesUnitPrice": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "salesAccountCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "salesTaxType": {
             "type": "string",
             "nullable": true
           }

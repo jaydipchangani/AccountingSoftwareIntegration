@@ -560,7 +560,7 @@ namespace WebApplication1.Controllers
 
         #region
 
-        [HttpGet("xero")]
+        [HttpGet("xero-get-all-products")]
         public async Task<IActionResult> GetProducts([FromQuery] string type = "Service", [FromQuery] int page = 1)
 {
     const int pageSize = 10; // Adjust as needed
@@ -568,7 +568,22 @@ namespace WebApplication1.Controllers
     return Ok(result);
 }
 
+        [HttpPost("xero-add-product")]
+        public async Task<IActionResult> AddProductsToXero([FromBody] List<Product> products)
+        {
+            if (products == null || !products.Any())
+                return BadRequest("Product list cannot be empty.");
 
+            try
+            {
+                await _productService.AddProductsToXeroAndDbAsync(products);
+                return Ok("Products successfully added to Xero and local DB.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error: {ex.Message}");
+            }
+        }
 
 
         #endregion

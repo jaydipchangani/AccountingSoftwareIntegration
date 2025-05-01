@@ -5,6 +5,7 @@ using WebApplication1.Data;
 using WebApplication1.Models;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
+using System.Text;
 
 
 public class ProductService
@@ -21,21 +22,21 @@ public class ProductService
     }
 
     public async Task<(string accessToken, string tenantId)> GetXeroAuthDetailsAsync()
- {
-     // Fetch the most recent Xero token and tenant ID from the database
-     var xeroToken = await _context.QuickBooksTokens
-         .Where(t => t.Company == "Xero")
-         .OrderByDescending(t => t.CreatedAt)
-         .FirstOrDefaultAsync();
+    {
+        // Fetch the most recent Xero token and tenant ID from the database
+        var xeroToken = await _context.QuickBooksTokens
+            .Where(t => t.Company == "Xero")
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync();
 
-     if (xeroToken == null)
-     {
-         throw new Exception("Xero token not found.");
-     }
+        if (xeroToken == null)
+        {
+            throw new Exception("Xero token not found.");
+        }
 
-     // Return the access token and tenant ID as a tuple
-     return (xeroToken.AccessToken, xeroToken.TenantId);
- }
+        // Return the access token and tenant ID as a tuple
+        return (xeroToken.AccessToken, xeroToken.TenantId);
+    }
     public async Task FetchAndStoreXeroProductsAsync()
     {
 
@@ -158,7 +159,7 @@ public class ProductService
                 UpdatedAt = DateTime.UtcNow,
 
                 PurchaseUnitPrice = isTracked ? item.PurchaseDetails?.UnitPrice : 0,
-               
+
                 PurchaseTaxType = isTracked ? item.PurchaseDetails?.TaxType : "",
 
                 SalesUnitPrice = isTracked ? item.SalesDetails?.UnitPrice : 0,
@@ -208,6 +209,88 @@ public class ProductService
             .Take(pageSize)
             .ToList();
     }
+
+    public async Task AddProductsToXeroAndDbAsync(List<Product> products)
+    {
+        var (accessToken, tenantId) = await GetXeroAuthDetailsAsync();
+
+        // Split products into inventory and service types
+        var inventoryItems = products
+            .Where(p => p.IsTrackedAsInventory)
+            .Select(p => new
+            {
+                Code = p.Code,
+                Name = p.Name,
+                Description = p.Description,
+                InventoryAssetAccountCode = p.AssetAccount,
+                PurchaseDetails = new
+                {
+                    COGSAccountCode = p.PurchaseCOGSAccountCode,
+                    UnitPrice = p.PurchaseUnitPrice ?? 0
+                },
+                SalesDetails = new
+                {
+                    UnitPrice = p.SalesUnitPrice ?? 0,
+                    AccountCode = p.SalesAccountCode
+                }
+            }).ToList();
+
+        var serviceItems = products
+            .Where(p => !p.IsTrackedAsInventory)
+            .Select(p => new
+            {
+                Code = p.Code,
+                Name = p.Name,
+                Description = p.Description
+            }).ToList();
+
+        // Send inventory items to Xero
+        if (inventoryItems.Any())
+        {
+            await SendItemsToXeroAsync(inventoryItems, accessToken, tenantId);
+        }
+
+        // Send service items to Xero
+        if (serviceItems.Any())
+        {
+            await SendItemsToXeroAsync(serviceItems, accessToken, tenantId);
+        }
+
+        // Save to local database
+        foreach (var product in products)
+        {
+            product.Platform = "Xero";
+            product.CreatedAt = DateTime.UtcNow;
+            product.UpdatedAt = DateTime.UtcNow;
+            _context.Products.Add(product);
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task SendItemsToXeroAsync(object itemsPayload, string accessToken, string tenantId)
+    {
+        var json = JsonConvert.SerializeObject(new { Items = itemsPayload });
+        var request = new HttpRequestMessage(HttpMethod.Put, "https://api.xero.com/api.xro/2.0/Items")
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Add("Xero-Tenant-Id", tenantId);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        var response = await _httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Xero API Error: {response.StatusCode}, Details: {error}");
+        }
+    }
+
+
+
 
 
 }
