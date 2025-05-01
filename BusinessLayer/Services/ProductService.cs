@@ -345,7 +345,7 @@ public class ProductService
             throw new Exception($"Failed to update item in Xero. Status: {response.StatusCode}, Error: {error}");
         }
 
-        // Update product in local DB
+
         var existing = await _context.Products.FirstOrDefaultAsync(p => p.QuickBooksItemId == itemId);
         if (existing != null)
         {
