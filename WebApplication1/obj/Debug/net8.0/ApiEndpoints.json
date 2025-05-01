@@ -344,16 +344,6 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.ProductsController",
-    "Method": "GetAllProducts",
-    "RelativePath": "api/Products",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.ProductsController",
     "Method": "AddProduct",
     "RelativePath": "api/Products/add-product",
     "HttpMethod": "POST",
@@ -418,6 +408,32 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "GetAllProducts",
+    "RelativePath": "api/Products/get-all-products",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "pageNumber",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
     "ReturnTypes": []
   },
   {

@@ -31,23 +31,54 @@ namespace WebApplication1.Controllers
         }
 
         #region
-
-        [HttpGet]
-        public async Task<IActionResult> GetAllProducts()
+        [HttpGet("get-all-products")]
+        public async Task<IActionResult> GetAllProducts(
+      [FromQuery] int pageNumber = 1,
+      [FromQuery] int pageSize = 10,
+      [FromQuery] string? search = null)
         {
             try
             {
-                var products = await _dbContext.Products.ToListAsync();
+                var query = _dbContext.Products.AsQueryable();
 
-                if (products == null || !products.Any())
-                    return NotFound("No products found in the database.");
+                // Apply search on Name only
+                if (!string.IsNullOrEmpty(search))
+                {
+                    query = query.Where(p => p.Name != null && p.Name.Contains(search));
+                }
 
-                return Ok(products);
+                var totalCount = await query.CountAsync();
+
+                // Select only required fields with safe string conversion
+                var products = await query
+                    .OrderBy(p => p.Name)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        Name = p.Name ?? "",
+                        Description = p.Description ?? "",
+                        Price = p.Price.ToString(),      // force to string
+                        Type = p.Type.ToString(),        // force to string
+                        Platform = p.Platform ?? "",
+                        QuickBooksItemId = p.QuickBooksItemId.ToString() ?? " ",
+                        isActive = p.IsActive
+                    })
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    Data = products,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalCount = totalCount
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error retrieving products: {Message}", ex.Message);
-                return StatusCode(500, "Internal server error retrieving products.");
+                _logger.LogError(ex, "Error retrieving products.");
+                return StatusCode(500, $"Internal server error retrieving products: {ex.Message}");
             }
         }
 
@@ -58,6 +89,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var tokenRecord = await _dbContext.QuickBooksTokens
+                    .Where(t => t.Company == "QBO")
                     .OrderByDescending(t => t.CreatedAt)
                     .FirstOrDefaultAsync();
 
@@ -73,7 +105,6 @@ namespace WebApplication1.Controllers
                 _logger.LogInformation("Fetching items from QuickBooks API.");
 
                 var url = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/query?query=SELECT * FROM Item";
-
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
                 httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -114,6 +145,9 @@ namespace WebApplication1.Controllers
                                 continue;
                             }
 
+                            item.Platform = "QBO";
+                           
+                            
                             await _dbContext.Products.AddAsync(item);
                         }
 
@@ -138,7 +172,6 @@ namespace WebApplication1.Controllers
         }
 
 
-
         private List<Product> ParseItemData(string json, string quickBooksUserId)
         {
             var result = new List<Product>();
@@ -146,7 +179,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var root = JObject.Parse(json);
-                var items = root["QueryResponses"]?["Item"] as JArray;
+                var items = root["QueryResponse"]?["Item"] as JArray;
 
                 if (items == null)
                 {
@@ -161,13 +194,14 @@ namespace WebApplication1.Controllers
                         QuickBooksItemId = item["Id"]?.ToString(),
                         Name = item["Name"]?.ToString(),
                         Description = item["Description"]?.ToString() ?? "",
-                        Price = item["UnitPrice"]?.ToObject<decimal>() ?? 0,
                         Type = item["Type"]?.ToString() ?? "Service",
-                        QuickBooksUserId = quickBooksUserId,
+                        Price = item["UnitPrice"]?.ToObject<decimal?>(),
                         QuantityOnHand = item["QtyOnHand"]?.ToObject<decimal?>(),
                         AsOfDate = DateTime.TryParse(item["InvStartDate"]?.ToString(), out var parsedDate) ? parsedDate : (DateTime?)null,
-                        SyncToken = item["SyncToken"]?.ToString()
-
+                        SyncToken = item["SyncToken"]?.ToString(),
+                        QuickBooksUserId = quickBooksUserId,
+                        IsTrackedAsInventory = item["TrackQtyOnHand"]?.ToObject<bool?>() ?? false,
+                        Platform= "QBO"
                     };
 
                     if (item["IncomeAccountRef"] != null)
@@ -188,6 +222,19 @@ namespace WebApplication1.Controllers
                         product.ExpenseAccountId = item["ExpenseAccountRef"]?["value"]?.ToString();
                     }
 
+                    // Purchase Details
+                    var purchaseDetails = item["PurchaseCost"]?.ToObject<decimal?>();
+                    if (purchaseDetails != null)
+                        product.PurchaseUnitPrice = purchaseDetails;
+
+                    product.PurchaseCOGSAccountCode = item["ExpenseAccountRef"]?["value"]?.ToString(); // Often used for COGS
+                    product.PurchaseTaxType = item["PurchaseTaxCodeRef"]?["value"]?.ToString();
+
+                    // Sales Details
+                    product.SalesUnitPrice = item["UnitPrice"]?.ToObject<decimal?>();
+                    product.SalesAccountCode = item["IncomeAccountRef"]?["value"]?.ToString();
+                    product.SalesTaxType = item["SalesTaxCodeRef"]?["value"]?.ToString();
+
                     result.Add(product);
                 }
             }
@@ -200,26 +247,30 @@ namespace WebApplication1.Controllers
         }
 
 
-
         [HttpPost("delete-product/{id}")]
         public async Task<IActionResult> DeleteProduct(string id, [FromBody] UpdateStatusDto statusDto)
         {
-            // Validate
+            // Convert string id to int
             if (!int.TryParse(id, out int parsedId))
                 return BadRequest("Invalid product ID format.");
 
+            // Fetch product by parsedId
             var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.Id == parsedId);
             if (product == null)
                 return NotFound("Product not found.");
 
-            var tokenRecord = await _dbContext.QuickBooksTokens.OrderByDescending(t => t.CreatedAt).FirstOrDefaultAsync();
+            // Get latest QuickBooks token
+            var tokenRecord = await _dbContext.QuickBooksTokens
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync();
+
             if (tokenRecord == null)
                 return NotFound("No QuickBooks token found.");
 
             var accessToken = tokenRecord.AccessToken;
             var realmId = tokenRecord.RealmId;
 
-            // Get QuickBooks item
+            // Attempt to fetch the item from QuickBooks
             var getUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/item/{product.QuickBooksItemId}";
             var getRequest = new HttpRequestMessage(HttpMethod.Get, getUrl);
             getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -228,6 +279,7 @@ namespace WebApplication1.Controllers
             var getResponse = await _httpClient.SendAsync(getRequest);
             var getContent = await getResponse.Content.ReadAsStringAsync();
 
+            // If QuickBooks fetch fails, update only local DB
             if (!getResponse.IsSuccessStatusCode)
             {
                 product.IsActive = statusDto.IsActive;
@@ -236,12 +288,11 @@ namespace WebApplication1.Controllers
                 return Ok("Local product updated, but QuickBooks item not found.");
             }
 
+            // Extract SyncToken
             var itemObj = JObject.Parse(getContent)?["Item"];
             var syncToken = itemObj?["SyncToken"]?.ToString();
 
-
-
-            // Mark inactive in QuickBooks
+            // Prepare update payload for QuickBooks
             var updatePayload = new
             {
                 sparse = true,
@@ -259,7 +310,6 @@ namespace WebApplication1.Controllers
             Accept = { new MediaTypeWithQualityHeaderValue("application/json") }
         },
                 Content = new StringContent(JsonConvert.SerializeObject(updatePayload), Encoding.UTF8, "application/json")
-
             };
 
             var updateResponse = await _httpClient.SendAsync(updateRequest);
@@ -278,15 +328,17 @@ namespace WebApplication1.Controllers
 
 
 
+
         [HttpPost("add-product")]
         public async Task<IActionResult> AddProduct([FromBody] ProductDto productDto)
         {
             try
             {
-                // Step 1: Get latest QuickBooks token
+
                 var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+                                .Where(t => t.Company == "QBO")
+                                .OrderByDescending(t => t.CreatedAt)
+                                .FirstOrDefaultAsync();
 
                 if (tokenRecord == null)
                     return NotFound("No QuickBooks token found.");
