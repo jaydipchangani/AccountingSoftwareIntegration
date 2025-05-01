@@ -605,7 +605,6 @@ C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.WebApplication1.props
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.WebApplication1.props
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\staticwebassets.pack.json
-C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\WebAppli.7D14BD69.Up2Date
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\WebApplication1.dll
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\refint\WebApplication1.dll
@@ -630,3 +629,4 @@ C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.0\System.Diagnostics.DiagnosticSource.dll
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.0\BusinessLayer.dll
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.0\BusinessLayer.pdb
+C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

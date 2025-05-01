@@ -271,7 +271,7 @@ namespace WebApplication1.Controllers
         public IActionResult GetProducts()
         {
             var products = _dbContext.Products
-                .Where(p => p.IsActive)
+                .Where(p => (bool)p.IsActive)
                 .Select(p => new Product
                 {
                     Id = p.Id,

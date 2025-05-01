@@ -421,6 +421,27 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "GetProducts",
+    "RelativePath": "api/Products/xero",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "type",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "WebApplication1.Controllers.QuickBooksController",
     "Method": "FetchChartOfAccountsFromQuickBooks",
     "RelativePath": "api/QuickBooks/fetch-chart-of-accounts-from-quickbooks",

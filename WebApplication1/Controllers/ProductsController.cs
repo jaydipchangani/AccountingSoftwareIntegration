@@ -12,21 +12,25 @@ using System.Text;
 
 namespace WebApplication1.Controllers
 {
-   
-        [Route("api/[controller]")]
-        [ApiController]
-        public class ProductsController : ControllerBase
-        {
+
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ProductsController : ControllerBase
+    {
         private readonly ApplicationDbContext _dbContext;
         private readonly HttpClient _httpClient;
         private readonly ILogger<CustomerController> _logger;
+        private readonly ProductService _productService;
 
-        public ProductsController(ApplicationDbContext dbContext, HttpClient httpClient, ILogger<CustomerController> logger)
+        public ProductsController(ApplicationDbContext dbContext, HttpClient httpClient, ILogger<CustomerController> logger, ProductService productService)
         {
             _dbContext = dbContext;
             _httpClient = httpClient;
             _logger = logger;
+            _productService = productService;
         }
+
+        #region
 
         [HttpGet]
         public async Task<IActionResult> GetAllProducts()
@@ -163,7 +167,7 @@ namespace WebApplication1.Controllers
                         QuantityOnHand = item["QtyOnHand"]?.ToObject<decimal?>(),
                         AsOfDate = DateTime.TryParse(item["InvStartDate"]?.ToString(), out var parsedDate) ? parsedDate : (DateTime?)null,
                         SyncToken = item["SyncToken"]?.ToString()
-                        
+
                     };
 
                     if (item["IncomeAccountRef"] != null)
@@ -316,7 +320,7 @@ namespace WebApplication1.Controllers
                 var payload = new Dictionary<string, object>
                 {
                     ["Name"] = productDto.Name,
-                    ["Description"]=productDto.Description,
+                    ["Description"] = productDto.Description,
                     ["Type"] = productDto.Type,
                     ["IncomeAccountRef"] = new { value = productDto.IncomeAccountId },
                     ["UnitPrice"] = productDto.Price,
@@ -552,7 +556,22 @@ namespace WebApplication1.Controllers
             }
         }
 
+        #endregion
 
+        #region
+
+        [HttpGet("xero")]
+        public async Task<IActionResult> GetProducts([FromQuery] string type = "Service", [FromQuery] int page = 1)
+{
+    const int pageSize = 10; // Adjust as needed
+    var result = await _productService.FetchAndStoreXeroProductsAsync(type, page, pageSize);
+    return Ok(result);
+}
+
+
+
+
+        #endregion
 
 
 

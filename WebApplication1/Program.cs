@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<XeroApiOptions>(builder.Configuration.GetSection("XeroApi"));
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+builder.Services.AddHttpClient<ProductService>();
 
 
 builder.Services.AddScoped<TokenService>();
