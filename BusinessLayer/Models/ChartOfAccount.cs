@@ -32,6 +32,8 @@ namespace WebApplication1.Models
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public CurrencyRef CurrencyRef { get; set; }
 
+        public string? Code { get; set; }
+
         public string? Company { get; set; }
         public string CurrencyValue { get; set; }
         public string? CurrencyName { get; set; }

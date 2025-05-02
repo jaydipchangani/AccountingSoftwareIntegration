@@ -61,7 +61,8 @@ public class XeroAccountService
                 Company = "Xero",
                 CurrencyValue = "USD",
                 CurrencyName = "US Dollar",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Code= acc.GetProperty("Code").GetString()
             };
 
             accounts.Add(chart);
