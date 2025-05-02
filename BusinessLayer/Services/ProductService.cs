@@ -414,7 +414,9 @@ public class ProductService
         var localProduct = await _context.Products.FirstOrDefaultAsync(p => p.QuickBooksItemId == itemId);
         if (localProduct != null)
         {
-            _context.Products.Remove(localProduct);
+            localProduct.IsActive = false; // Mark as inactive
+            localProduct.UpdatedAt = DateTime.UtcNow; // Update the timestamp
+            _context.Products.Update(localProduct);
             await _context.SaveChangesAsync();
         }
     }
