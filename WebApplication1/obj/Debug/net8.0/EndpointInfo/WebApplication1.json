@@ -1548,9 +1548,6 @@
         "additionalProperties": false
       },
       "Product": {
-        "required": [
-          "name"
-        ],
         "type": "object",
         "properties": {
           "id": {
@@ -1558,8 +1555,8 @@
             "format": "int32"
           },
           "name": {
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "code": {
             "type": "string",

@@ -63,7 +63,8 @@ namespace WebApplication1.Controllers
                         Type = p.Type.ToString(),        // force to string
                         Platform = p.Platform ?? "",
                         QuickBooksItemId = p.QuickBooksItemId.ToString() ?? " ",
-                        isActive = p.IsActive
+                        isActive = p.IsActive,
+                        code = p.Code
                     })
                     .ToListAsync();
 
