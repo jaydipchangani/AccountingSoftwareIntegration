@@ -37,67 +37,72 @@ public class ProductService
         // Return the access token and tenant ID as a tuple
         return (xeroToken.AccessToken, xeroToken.TenantId);
     }
-    public async Task FetchAndStoreXeroProductsAsync()
-    {
+    //public async Task FetchAndStoreXeroProductsAsync()
+    //{
 
-        var accessToken = await _context.XeroTokens.Select(x => x.AccessToken).FirstOrDefaultAsync();
-        var tenantId = await _context.XeroTokens.Select(x => x.TenantId).FirstOrDefaultAsync();
+    //    var accessToken = await _context.XeroTokens.Select(x => x.AccessToken).FirstOrDefaultAsync();
+    //    var tenantId = await _context.XeroTokens.Select(x => x.TenantId).FirstOrDefaultAsync();
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "https://api.xero.com/api.xro/2.0/Items");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        request.Headers.Add("Xero-Tenant-Id", tenantId);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    //    var request = new HttpRequestMessage(HttpMethod.Get, "https://api.xero.com/api.xro/2.0/Items");
+    //    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+    //    request.Headers.Add("Xero-Tenant-Id", tenantId);
+    //    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-        var response = await _httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+    //    var response = await _httpClient.SendAsync(request);
+    //    response.EnsureSuccessStatusCode();
 
-        var responseContent = await response.Content.ReadAsStringAsync();
-        var xeroData = JsonConvert.DeserializeObject<XeroItemsResponse>(responseContent);
+    //    var responseContent = await response.Content.ReadAsStringAsync();
+    //    var xeroData = JsonConvert.DeserializeObject<XeroItemsResponse>(responseContent);
 
-        foreach (var item in xeroData.Items)
-        {
-            var product = new Product
-            {
-                Name = item.Name,
-                Description = item.Description ?? item.PurchaseDescription,
-                Type = item.IsTrackedAsInventory ? "Inventory" : "Service",
-                Price = item.SalesDetails?.UnitPrice ?? item.PurchaseDetails?.UnitPrice ?? 0,
-                IncomeAccount = item.SalesDetails?.AccountCode ?? "Unknown",
-                AssetAccount = item.InventoryAssetAccountCode,
-                ExpenseAccount = item.PurchaseDetails?.COGSAccountCode,
-                QuantityOnHand = item.QuantityOnHand,
-                AsOfDate = DateTime.UtcNow,
-                QuickBooksItemId = item.ItemID.ToString(),
-                UpdatedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
-            };
+    //    foreach (var item in xeroData.Items)
+    //    {
+    //        var product = new Product
+    //        {
+    //            Name = item.Name,
+    //            Description = item.Description ?? item.PurchaseDescription,
+    //            Type = item.IsTrackedAsInventory ? "Inventory" : "Service",
+    //            Price = item.SalesDetails?.UnitPrice ?? item.PurchaseDetails?.UnitPrice ?? 0,
+    //            IncomeAccount = item.SalesDetails?.AccountCode ?? "Unknown",
+    //            AssetAccount = item.InventoryAssetAccountCode,
+    //            ExpenseAccount = item.PurchaseDetails?.COGSAccountCode,
+    //            QuantityOnHand = item.QuantityOnHand,
+    //            AsOfDate = DateTime.UtcNow,
+    //            QuickBooksItemId = item.ItemID.ToString(),
+    //            UpdatedAt = DateTime.UtcNow,
+    //            CreatedAt = DateTime.UtcNow
+    //        };
 
-            var existing = await _context.Products
-                .FirstOrDefaultAsync(p => p.QuickBooksItemId == product.QuickBooksItemId);
+    //        var existing = await _context.Products
+    //            .FirstOrDefaultAsync(p => p.Code == product.Code);
 
-            if (existing == null)
-            {
-                _context.Products.Add(product);
-            }
-            else
-            {
-                existing.Name = product.Name;
-                existing.Description = product.Description;
-                existing.Type = product.Type;
-                existing.Price = product.Price;
-                existing.IncomeAccount = product.IncomeAccount;
-                existing.AssetAccount = product.AssetAccount;
-                existing.ExpenseAccount = product.ExpenseAccount;
-                existing.QuantityOnHand = product.QuantityOnHand;
-                existing.UpdatedAt = DateTime.UtcNow;
-            }
-        }
+    //        if (existing == null)
+    //        {
+    //            _context.Products.Add(product);
+    //        }
+    //        else
+    //        {
+    //            existing.Name = product.Name;
+    //            existing.Description = product.Description;
+    //            existing.Type = product.Type;
+    //            existing.Price = product.Price;
+    //            existing.IncomeAccount = product.IncomeAccount;
+    //            existing.AssetAccount = product.AssetAccount;
+    //            existing.ExpenseAccount = product.ExpenseAccount;
+    //            existing.QuantityOnHand = product.QuantityOnHand;
+    //            existing.UpdatedAt = DateTime.UtcNow;
+    //        }
+    //    }
 
-        await _context.SaveChangesAsync();
-    }
+    //    await _context.SaveChangesAsync();
+    //}
 
     public async Task<List<Product>> FetchAndStoreXeroProductsAsync(string type, int page, int pageSize)
     {
+        // Remove all products where Platform = "Xero"
+        var xeroProducts = _context.Products.Where(p => p.Platform == "Xero");
+        _context.Products.RemoveRange(xeroProducts);
+        await _context.SaveChangesAsync();
+
         var (accessToken, tenantId) = await GetXeroAuthDetailsAsync();
 
         using var client = new HttpClient();
