@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
-using WebApplication1.Data;
-using WebApplication1.Models;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using WebApplication1.Data;
+using WebApplication1.Models;
 
 
 public class ProductService

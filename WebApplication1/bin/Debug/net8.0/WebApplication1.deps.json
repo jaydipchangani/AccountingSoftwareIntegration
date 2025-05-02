@@ -10,6 +10,7 @@
         "dependencies": {
           "BusinessLayer": "1.0.0",
           "CsvHelper": "33.0.1",
+          "DataLayer": "1.0.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "8.0.14",
           "Microsoft.AspNetCore.Authentication.OAuth": "2.3.0",
           "Microsoft.EntityFrameworkCore": "8.0.14",
@@ -2323,6 +2324,7 @@
       "BusinessLayer/1.0.0": {
         "dependencies": {
           "CsvHelper": "33.0.1",
+          "DataLayer": "1.0.0",
           "Microsoft.AspNetCore.Mvc": "2.3.0",
           "Microsoft.EntityFrameworkCore.SqlServer": "8.0.14",
           "Microsoft.Extensions.Http": "9.0.4",
@@ -2330,6 +2332,18 @@
         },
         "runtime": {
           "BusinessLayer.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "DataLayer/1.0.0": {
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "8.0.14",
+          "Newtonsoft.Json": "13.0.3"
+        },
+        "runtime": {
+          "DataLayer.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
           }
@@ -3947,6 +3961,11 @@
       "hashPath": "system.xml.xmlserializer.4.3.0.nupkg.sha512"
     },
     "BusinessLayer/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "DataLayer/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

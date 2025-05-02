@@ -1,0 +1,13 @@
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\DataLayer.GeneratedMSBuildEditorConfig.editorconfig
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\DataLayer.AssemblyInfoInputs.cache
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\DataLayer.AssemblyInfo.cs
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\DataLayer.csproj.CoreCompileInputs.cache
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\DataLayer.sourcelink.json
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\bin\Debug\net8.0\DataLayer.deps.json
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\bin\Debug\net8.0\DataLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\bin\Debug\net8.0\DataLayer.pdb
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\DataLayer.csproj.AssemblyReference.cache
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\DataLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\refint\DataLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\DataLayer.pdb
+C:\AccountingIntegration\Backend\WebApplication1\DataLayer\obj\Debug\net8.0\ref\DataLayer.dll

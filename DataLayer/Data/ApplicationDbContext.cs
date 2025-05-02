@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using DataLayer.Models;
 using WebApplication1.Models;
 using WebApplication1.Models.Xero;
 

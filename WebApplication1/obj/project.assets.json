@@ -4247,6 +4247,7 @@
         "framework": ".NETCoreApp,Version=v8.0",
         "dependencies": {
           "CsvHelper": "33.0.1",
+          "DataLayer": "1.0.0",
           "Microsoft.AspNetCore.Mvc": "2.3.0",
           "Microsoft.EntityFrameworkCore.SqlServer": "8.0.14",
           "Microsoft.Extensions.Http": "9.0.4",
@@ -4257,6 +4258,20 @@
         },
         "runtime": {
           "bin/placeholder/BusinessLayer.dll": {}
+        }
+      },
+      "DataLayer/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "8.0.14",
+          "Newtonsoft.Json": "13.0.3"
+        },
+        "compile": {
+          "bin/placeholder/DataLayer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/DataLayer.dll": {}
         }
       }
     }
@@ -11984,12 +11999,18 @@
       "type": "project",
       "path": "../BusinessLayer/BusinessLayer.csproj",
       "msbuildProject": "../BusinessLayer/BusinessLayer.csproj"
+    },
+    "DataLayer/1.0.0": {
+      "type": "project",
+      "path": "../DataLayer/DataLayer.csproj",
+      "msbuildProject": "../DataLayer/DataLayer.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net8.0": [
       "BusinessLayer >= 1.0.0",
       "CsvHelper >= 33.0.1",
+      "DataLayer >= 1.0.0",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 8.0.14",
       "Microsoft.AspNetCore.Authentication.OAuth >= 2.3.0",
       "Microsoft.EntityFrameworkCore >= 8.0.14",
@@ -12035,6 +12056,9 @@
           "projectReferences": {
             "C:\\AccountingIntegration\\Backend\\WebApplication1\\BusinessLayer\\BusinessLayer.csproj": {
               "projectPath": "C:\\AccountingIntegration\\Backend\\WebApplication1\\BusinessLayer\\BusinessLayer.csproj"
+            },
+            "C:\\AccountingIntegration\\Backend\\WebApplication1\\DataLayer\\DataLayer.csproj": {
+              "projectPath": "C:\\AccountingIntegration\\Backend\\WebApplication1\\DataLayer\\DataLayer.csproj"
             }
           }
         }

@@ -7,6 +7,8 @@ using WebApplication1.Services;
 using WebApplication1.Models.Xero;
 using Businesslayer.Services;
 
+using DataLayer.Models;
+
 
 var builder = WebApplication.CreateBuilder(args);
 

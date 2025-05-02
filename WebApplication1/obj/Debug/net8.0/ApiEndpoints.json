@@ -446,7 +446,7 @@
     "Parameters": [
       {
         "Name": "products",
-        "Type": "System.Collections.Generic.List\u00601[[WebApplication1.Models.Product, BusinessLayer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "Type": "System.Collections.Generic.List\u00601[[WebApplication1.Models.Product, DataLayer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
         "IsRequired": true
       }
     ],

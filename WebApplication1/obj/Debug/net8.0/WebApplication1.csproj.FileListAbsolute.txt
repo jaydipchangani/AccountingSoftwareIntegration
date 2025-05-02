@@ -630,3 +630,5 @@ C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.0\BusinessLayer.dll
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.0\BusinessLayer.pdb
 C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.0\DataLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\WebApplication1\bin\Debug\net8.0\DataLayer.pdb

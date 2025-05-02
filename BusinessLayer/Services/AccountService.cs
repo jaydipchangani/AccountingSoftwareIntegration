@@ -6,6 +6,7 @@ using WebApplication1.Data;
 using WebApplication1.Models;
 using Microsoft.Extensions.Http;
 using System.Net.Http;
+using DataLayer.Models;
 
 
 namespace Businesslayer.Services
