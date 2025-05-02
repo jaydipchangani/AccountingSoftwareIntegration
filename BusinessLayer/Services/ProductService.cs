@@ -13,12 +13,16 @@ public class ProductService
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _config;
     private readonly ApplicationDbContext _context;
+    private readonly string _baseUrl;
 
     public ProductService(HttpClient httpClient, IConfiguration config, ApplicationDbContext context)
     {
         _httpClient = httpClient;
         _config = config;
         _context = context;
+
+        // Initialize BaseUrl from configuration
+        _baseUrl = _config["XeroApi:BaseUrl"] ?? throw new Exception("BaseUrl not configured in app settings.");
     }
 
     public async Task<(string accessToken, string tenantId)> GetXeroAuthDetailsAsync()
@@ -110,7 +114,8 @@ public class ProductService
         client.DefaultRequestHeaders.Add("Xero-Tenant-Id", tenantId);
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-        var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Items");
+        string fullUrl = $"{_baseUrl}/Items";
+        var response = await client.GetAsync(fullUrl);
         response.EnsureSuccessStatusCode();
 
         var content = await response.Content.ReadAsStringAsync();
@@ -301,7 +306,10 @@ public class ProductService
     private async Task SendItemsToXeroAsync(object itemsPayload, string accessToken, string tenantId)
     {
         var json = JsonConvert.SerializeObject(new { Items = itemsPayload });
-        var request = new HttpRequestMessage(HttpMethod.Put, "https://api.xero.com/api.xro/2.0/Items")
+
+        string fullUrl = $"{_baseUrl}/Items";
+
+        var request = new HttpRequestMessage(HttpMethod.Put, fullUrl)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
@@ -357,7 +365,10 @@ public class ProductService
 
         var json = JsonConvert.SerializeObject(new { Items = new[] { itemPayload } });
 
-        var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Items/{itemId}")
+        // Use BaseUrl for API call
+        string fullUrl = $"{_baseUrl}/Items/{itemId}";
+
+        var request = new HttpRequestMessage(HttpMethod.Post, fullUrl)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
@@ -398,9 +409,12 @@ public class ProductService
     {
         var (accessToken, tenantId) = await GetXeroAuthDetailsAsync();
 
-        var request = new HttpRequestMessage(HttpMethod.Delete, $"https://api.xero.com/api.xro/2.0/Items/{itemId}");
+        string fullUrl = $"{_baseUrl}/Items/{itemId}";
+
+        var request = new HttpRequestMessage(HttpMethod.Delete, fullUrl);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         request.Headers.Add("xero-tenant-id", tenantId);
+
 
         var response = await _httpClient.SendAsync(request);
 

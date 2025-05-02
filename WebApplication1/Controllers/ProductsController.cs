@@ -30,12 +30,13 @@ namespace WebApplication1.Controllers
             _productService = productService;
         }
 
-        #region
+        #region qbo
+        #region QBO
         [HttpGet("get-all-products")]
         public async Task<IActionResult> GetAllProducts(
-      [FromQuery] int pageNumber = 1,
-      [FromQuery] int pageSize = 10,
-      [FromQuery] string? search = null)
+     [FromQuery] int pageNumber = 1,
+     [FromQuery] int pageSize = 10,
+     [FromQuery] string? search = null)
         {
             try
             {
@@ -65,10 +66,10 @@ namespace WebApplication1.Controllers
                         QuickBooksItemId = p.QuickBooksItemId.ToString() ?? " ",
                         isActive = p.IsActive,
                         code = p.Code,
-                        PurchaseCOGSAccountCode=p.PurchaseCOGSAccountCode,
-                        PurchaseUnitPrice=p.PurchaseUnitPrice,
-                        SalesUnitPrice=p.SalesUnitPrice,
-                        SalesAccountCode=p.SalesAccountCode
+                        PurchaseCOGSAccountCode = p.PurchaseCOGSAccountCode,
+                        PurchaseUnitPrice = p.PurchaseUnitPrice,
+                        SalesUnitPrice = p.SalesUnitPrice,
+                        SalesAccountCode = p.SalesAccountCode
 
                     })
                     .ToListAsync();
@@ -152,8 +153,8 @@ namespace WebApplication1.Controllers
                             }
 
                             item.Platform = "QBO";
-                           
-                            
+
+
                             await _dbContext.Products.AddAsync(item);
                         }
 
@@ -207,7 +208,7 @@ namespace WebApplication1.Controllers
                         SyncToken = item["SyncToken"]?.ToString(),
                         QuickBooksUserId = quickBooksUserId,
                         IsTrackedAsInventory = item["TrackQtyOnHand"]?.ToObject<bool?>() ?? false,
-                        Platform= "QBO"
+                        Platform = "QBO"
                     };
 
                     if (item["IncomeAccountRef"] != null)
@@ -612,7 +613,8 @@ namespace WebApplication1.Controllers
                 Console.WriteLine($"Exception: {ex.Message}");
                 return StatusCode(500, "An error occurred while updating the product.");
             }
-        }
+        } 
+        #endregion
 
         #endregion
 
@@ -620,11 +622,11 @@ namespace WebApplication1.Controllers
 
         [HttpGet("xero-get-all-products")]
         public async Task<IActionResult> GetProducts([FromQuery] string type = "Service", [FromQuery] int page = 1)
-{
-    const int pageSize = 10; // Adjust as needed
-    var result = await _productService.FetchAndStoreXeroProductsAsync(type, page, pageSize);
-    return Ok(result);
-}
+        {
+            const int pageSize = 10; // Adjust as needed
+            var result = await _productService.FetchAndStoreXeroProductsAsync(type, page, pageSize);
+            return Ok(result);
+        }
 
         [HttpPost("xero-add-product")]
         public async Task<IActionResult> AddProductsToXero([FromBody] List<Product> products)
