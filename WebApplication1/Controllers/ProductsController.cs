@@ -64,7 +64,12 @@ namespace WebApplication1.Controllers
                         Platform = p.Platform ?? "",
                         QuickBooksItemId = p.QuickBooksItemId.ToString() ?? " ",
                         isActive = p.IsActive,
-                        code = p.Code
+                        code = p.Code,
+                        PurchaseCOGSAccountCode=p.PurchaseCOGSAccountCode,
+                        PurchaseUnitPrice=p.PurchaseUnitPrice,
+                        SalesUnitPrice=p.SalesUnitPrice,
+                        SalesAccountCode=p.SalesAccountCode
+
                     })
                     .ToListAsync();
 
