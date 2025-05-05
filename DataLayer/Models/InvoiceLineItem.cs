@@ -26,7 +26,7 @@ public class InvoiceLineItem
     public string Description { get; set; } = string.Empty;
 
     [Required]
-    public int Quantity { get; set; } = 0;
+    public decimal Quantity { get; set; } = 0;
 
     [Required]
     public decimal Rate { get; set; } = 0;

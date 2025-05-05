@@ -61,3 +61,4 @@ public class Invoice
 
     public ICollection<InvoiceLineItem> LineItems { get; set; } = new List<InvoiceLineItem>();
 }
+

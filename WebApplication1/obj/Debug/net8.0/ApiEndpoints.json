@@ -772,6 +772,22 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "Method": "AddInvoice",
+    "RelativePath": "api/XeroInvoice/add-invoice",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "DataLayer.Models.Xero.XeroInvoiceCreateDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
     "Method": "FetchAndStoreXeroInvoices",
     "RelativePath": "api/XeroInvoice/fetch",
     "HttpMethod": "GET",
