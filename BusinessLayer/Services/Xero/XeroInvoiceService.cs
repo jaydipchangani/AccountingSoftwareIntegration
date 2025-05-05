@@ -144,7 +144,7 @@ namespace BusinessLayer.Services.Xero
                         Date = dto.Date.ToString("yyyy-MM-dd"),
                         DueDate = dto.DueDate.ToString("yyyy-MM-dd"),
                         Reference = dto.Reference,
-                        Status = "AUTHORISED"
+                        Status = "DRAFT"
                     }
                 }
             };
