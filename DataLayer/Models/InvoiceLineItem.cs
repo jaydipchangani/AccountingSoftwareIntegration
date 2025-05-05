@@ -16,28 +16,58 @@ public class InvoiceLineItem
     [ForeignKey("InvoiceId")]
     public Invoice Invoice { get; set; } = null!;
 
-    public string? ProductId { get; set; }       // Xero: ItemCode
-    public string? ProductName { get; set; }     // Xero: Item.Name
-    public string? Description { get; set; }     // Xero: Description
-    public int? Quantity { get; set; }           // Xero: Quantity
-    public decimal? Rate { get; set; }           // Xero: UnitAmount
-    public decimal? Amount { get; set; }         // Xero: LineAmount
-    public int? LineNum { get; set; }
-    public string? DetailType { get; set; } = "SalesItemLineDetail";
+    [Required]
+    public string ProductId { get; set; } = string.Empty;
 
-    public string? ItemRef { get; set; }         // Xero: ItemCode
-    public string? ItemName { get; set; }        // Xero: Item.Name
+    [Required]
+    public string ProductName { get; set; } = string.Empty;
+
+    [Required]
+    public string Description { get; set; } = string.Empty;
+
+    [Required]
+    public int Quantity { get; set; } = 0;
+
+    [Required]
+    public decimal Rate { get; set; } = 0;
+
+    [Required]
+    public decimal Amount { get; set; } = 0;
+
+    [Required]
+    public int LineNum { get; set; } = 0;
+
+    [Required]
+    public string DetailType { get; set; } = "SalesItemLineDetail";
+
+    [Required]
+    public string ItemRef { get; set; } = string.Empty;
+
+    [Required]
+    public string ItemName { get; set; } = string.Empty;
 
     // Xero-specific fields
-    public string? XeroLineItemId { get; set; }  // LineItemID
-    public string? XeroAccountCode { get; set; } // AccountCode
-    public string? XeroAccountId { get; set; }   // AccountID
-    public string? XeroTaxType { get; set; }     // TaxType
-    public decimal? XeroTaxAmount { get; set; }  // TaxAmount
-    public decimal? XeroDiscountRate { get; set; } // DiscountRate
+    [Required]
+    public string XeroLineItemId { get; set; } = string.Empty;
+
+    [Required]
+    public string XeroAccountCode { get; set; } = string.Empty;
+
+    [Required]
+    public string XeroAccountId { get; set; } = string.Empty;
+
+    [Required]
+    public string XeroTaxType { get; set; } = string.Empty;
+
+    [Required]
+    public decimal XeroTaxAmount { get; set; } = 0;
+
+    [Required]
+    public decimal XeroDiscountRate { get; set; } = 0;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public string PlatformLineItem { get; set; }
+    [Required]
+    public string PlatformLineItem { get; set; } = "Xero";  // or default value
 }

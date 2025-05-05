@@ -38,7 +38,7 @@ namespace BusinessLayer.Services.Xero
             client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices");
+            var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices?page=1");
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
@@ -86,7 +86,8 @@ namespace BusinessLayer.Services.Xero
                     invoice.LineItems.Add(new InvoiceLineItem
                     {
                         Description = lineJson.TryGetProperty("Description", out var description) ? description.GetString() : string.Empty,
-                        Quantity = lineJson.TryGetProperty("Quantity", out var quantity) ? quantity.GetInt32() : 0,
+                        Quantity = lineJson.TryGetProperty("Quantity", out var quantity) ? (int)quantity.GetDecimal() : 0,
+
                         Rate = lineJson.TryGetProperty("UnitAmount", out var rate) ? rate.GetDecimal() : 0,
                         Amount = lineJson.TryGetProperty("LineAmount", out var amount) ? amount.GetDecimal() : 0,
                         XeroLineItemId = lineJson.TryGetProperty("LineItemID", out var lineItemId) ? lineItemId.GetString() : string.Empty,
