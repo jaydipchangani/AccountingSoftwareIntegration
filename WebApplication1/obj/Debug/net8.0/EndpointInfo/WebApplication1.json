@@ -742,7 +742,7 @@
         }
       }
     },
-    "/api/Products/xero-add-product": {
+    "/api/Products": {
       "post": {
         "tags": [
           "Products"
@@ -782,7 +782,7 @@
         }
       }
     },
-    "/api/Products/xero-update-product/{itemId}": {
+    "/api/Products/{itemId}": {
       "post": {
         "tags": [
           "Products"
@@ -821,9 +821,7 @@
             "description": "OK"
           }
         }
-      }
-    },
-    "/api/Products/xero-delete-product/{itemId}": {
+      },
       "delete": {
         "tags": [
           "Products"

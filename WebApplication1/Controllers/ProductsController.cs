@@ -30,7 +30,6 @@ namespace WebApplication1.Controllers
             _productService = productService;
         }
 
-        #region qbo
         #region QBO
         [HttpGet("get-all-products")]
         public async Task<IActionResult> GetAllProducts(
@@ -616,7 +615,7 @@ namespace WebApplication1.Controllers
         } 
         #endregion
 
-        #endregion
+
 
         #region
 
@@ -628,7 +627,7 @@ namespace WebApplication1.Controllers
             return Ok(result);
         }
 
-        [HttpPost("xero-add-product")]
+        [HttpPost]
         public async Task<IActionResult> AddProductsToXero([FromBody] List<Product> products)
         {
             if (products == null || !products.Any())
@@ -646,7 +645,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpPost("xero-update-product/{itemId}")]
+        [HttpPost("{itemId}")]
         public async Task<IActionResult> UpdateProduct(string itemId, [FromBody] Product product)
         {
             try
@@ -661,7 +660,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpDelete("xero-delete-product/{itemId}")]
+        [HttpDelete("{itemId}")]
         public async Task<IActionResult> DeleteProduct(string itemId)
         {
             try

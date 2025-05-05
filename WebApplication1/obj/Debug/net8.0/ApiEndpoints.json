@@ -344,6 +344,59 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "AddProductsToXero",
+    "RelativePath": "api/Products",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "products",
+        "Type": "System.Collections.Generic.List\u00601[[WebApplication1.Models.Product, DataLayer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "UpdateProduct",
+    "RelativePath": "api/Products/{itemId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "itemId",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "product",
+        "Type": "WebApplication1.Models.Product",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "DeleteProduct",
+    "RelativePath": "api/Products/{itemId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "itemId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
     "Method": "AddProduct",
     "RelativePath": "api/Products/add-product",
     "HttpMethod": "POST",
@@ -438,38 +491,6 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.ProductsController",
-    "Method": "AddProductsToXero",
-    "RelativePath": "api/Products/xero-add-product",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "products",
-        "Type": "System.Collections.Generic.List\u00601[[WebApplication1.Models.Product, DataLayer, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.ProductsController",
-    "Method": "DeleteProduct",
-    "RelativePath": "api/Products/xero-delete-product/{itemId}",
-    "HttpMethod": "DELETE",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "itemId",
-        "Type": "System.String",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.ProductsController",
     "Method": "GetProducts",
     "RelativePath": "api/Products/xero-get-all-products",
     "HttpMethod": "GET",
@@ -485,27 +506,6 @@
         "Name": "page",
         "Type": "System.Int32",
         "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.ProductsController",
-    "Method": "UpdateProduct",
-    "RelativePath": "api/Products/xero-update-product/{itemId}",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "itemId",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "product",
-        "Type": "WebApplication1.Models.Product",
-        "IsRequired": true
       }
     ],
     "ReturnTypes": []
