@@ -186,31 +186,38 @@ namespace BusinessLayer.Services.Xero
             {
                 invoice.LineItems.Add(new InvoiceLineItem
                 {
-                    ProductId = "",
-                    ProductName = "",
-                    Description = lineItem.TryGetProperty("Description", out var desc) ? desc.GetString() ?? "" : "",
-                    Quantity = lineItem.TryGetProperty("Quantity", out var qty) ? qty.GetDecimal() : 0,
-                    Rate = lineItem.TryGetProperty("UnitAmount", out var unit) ? unit.GetDecimal() : 0,
-                    Amount = lineItem.TryGetProperty("LineAmount", out var amt) ? amt.GetDecimal() : 0,
-                    LineNum = 1,
+                    ProductId = lineItem.GetProperty("ProductId").GetString() ?? "UnknownProduct", // Ensure this is not empty
+                    ProductName = lineItem.GetProperty("ProductName").GetString() ?? "UnknownProductName", // Ensure this is not empty
+                    Description = lineItem.GetProperty("Description").GetString() ?? "",
+                    Quantity = lineItem.GetProperty("Quantity").GetDecimal(),
+                    Rate = lineItem.GetProperty("UnitAmount").GetDecimal(),
+                    Amount = lineItem.GetProperty("LineAmount").GetDecimal(),
+                    LineNum = 1, // You might need to update this to increment depending on your scenario
                     DetailType = "SalesItemLineDetail",
-                    ItemRef = "",
-                    ItemName = "",
-                    XeroLineItemId = lineItem.TryGetProperty("LineItemID", out var lid) ? lid.GetString() ?? "" : "",
-                    XeroAccountCode = lineItem.TryGetProperty("AccountCode", out var acc) ? acc.GetString() ?? "" : "",
-                    XeroAccountId = "", // not returned by Xero
-                    XeroTaxType = lineItem.TryGetProperty("TaxType", out var tax) ? tax.GetString() ?? "" : "",
-                    XeroTaxAmount = lineItem.TryGetProperty("TaxAmount", out var taxAmt) ? taxAmt.GetDecimal() : 0,
-                    XeroDiscountRate = 0,
+                    ItemRef = lineItem.GetProperty("ItemRef").GetString() ?? "UnknownItemRef", // Ensure this is not empty
+                    ItemName = lineItem.GetProperty("ItemName").GetString() ?? "UnknownItemName", // Ensure this is not empty
+                    XeroLineItemId = lineItem.GetProperty("LineItemID").GetString() ?? "",
+                    XeroAccountCode = lineItem.GetProperty("AccountCode").GetString() ?? "",
+                    XeroAccountId = "", // Xero does not return this, ensure it's either set or left empty
+                    XeroTaxType = lineItem.GetProperty("TaxType").GetString() ?? "",
+                    XeroTaxAmount = lineItem.GetProperty("TaxAmount").GetDecimal(),
+                    XeroDiscountRate = 0, // Set to 0 if you don't need to track discount rate
                     PlatformLineItem = "Xero"
                 });
             }
 
+
             try
             {
                 Console.WriteLine("Attempting to save invoice data...");
-                Console.WriteLine(JsonSerializer.Serialize(invoice));  // Log the data before saving
                 _context.Invoices.Add(invoice);
+                await _context.SaveChangesAsync();
+
+                // Now save the LineItems
+                foreach (var lineItem in invoice.LineItems)
+                {
+                    _context.InvoiceLineItems.Add(lineItem);
+                }
                 await _context.SaveChangesAsync();
             }
             catch (Exception ex)
@@ -218,6 +225,7 @@ namespace BusinessLayer.Services.Xero
                 Console.WriteLine("DB Save Error: " + ex.Message);
                 throw;
             }
+
 
             return invoice.QuickBooksId;
         }
