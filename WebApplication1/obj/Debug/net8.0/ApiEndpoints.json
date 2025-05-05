@@ -307,27 +307,6 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.InvoiceContoller",
-    "Method": "UpdateInvoice",
-    "RelativePath": "api/InvoiceContoller/update-invoice/{id}",
-    "HttpMethod": "PUT",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.String",
-        "IsRequired": true
-      },
-      {
-        "Name": "request",
-        "Type": "UpdateInvoiceRequest",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.InvoiceContoller",
     "Method": "VoidInvoice",
     "RelativePath": "api/InvoiceContoller/void-invoice/{id}",
     "HttpMethod": "DELETE",
@@ -785,6 +764,16 @@
     "ContainingType": "XeroAuthController",
     "Method": "Logout",
     "RelativePath": "api/XeroAuth/logout",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "Method": "FetchAndStoreXeroInvoices",
+    "RelativePath": "api/XeroInvoice/fetch",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,

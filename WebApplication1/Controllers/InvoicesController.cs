@@ -29,9 +29,22 @@ namespace WebApplication1.Controllers
         {
             try
             {
+                var qboInvoices = _dbContext.Invoices.Where(i => i.Platform == "QBO").ToList();
+                _dbContext.Invoices.RemoveRange(qboInvoices);
+                _dbContext.SaveChanges();
+
+                var qboLineItems = _dbContext.InvoiceLineItems
+                .Where(x => x.PlatformLineItem == "QBO")
+                .ToList();
+                _dbContext.InvoiceLineItems.RemoveRange(qboLineItems);
+                _dbContext.SaveChanges();
+
+                _dbContext.InvoiceLineItems.RemoveRange(_dbContext.InvoiceLineItems);
+
                 var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+                .Where(x => x.Company == "QBO")  // Filter by Xero company
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .FirstOrDefaultAsync();
 
                 if (tokenRecord == null)
                     return NotFound("No QuickBooks token found.");
@@ -66,34 +79,36 @@ namespace WebApplication1.Controllers
                 }
 
                 _logger.LogInformation("Clearing existing invoice data.");
-                _dbContext.InvoiceLineItems.RemoveRange(_dbContext.InvoiceLineItems);
-                _dbContext.Invoices.RemoveRange(_dbContext.Invoices);
+
                 await _dbContext.SaveChangesAsync();
 
 
                 foreach (var item in invoicesJson.EnumerateArray())
                 {
-                    var quickBooksId = item.GetProperty("Id").GetString();
+                    var quickBooksId = item.GetProperty("Id").GetString() ?? string.Empty;
 
                     var invoice = new Invoice
                     {
                         QuickBooksId = quickBooksId,
-                        DocNumber = item.GetProperty("DocNumber").GetString(),
-                        CustomerName = item.GetProperty("CustomerRef").GetProperty("name").GetString(),
-                        CustomerId = item.GetProperty("CustomerRef").GetProperty("value").GetString(),
-                        TxnDate = DateTime.Parse(item.GetProperty("TxnDate").GetString()),
-                        DueDate = item.TryGetProperty("DueDate", out var due) ? DateTime.Parse(due.GetString()) : null,
-                        Subtotal = item.TryGetProperty("SubTotal", out var sub) ? sub.GetDecimal() : null,
-                        TotalAmt = item.TryGetProperty("TotalAmt", out var total) ? total.GetDecimal() : null,
-                        Balance = item.TryGetProperty("Balance", out var bal) ? bal.GetDecimal() : null,
-                        CustomerEmail = item.TryGetProperty("BillEmail", out var email) ? email.GetProperty("Address").GetString() : null,
-                        BillingAddressJson = item.TryGetProperty("BillAddr", out var billAddr) ? billAddr.ToString() : null,
-                        ShippingAddressJson = item.TryGetProperty("ShipAddr", out var shipAddr) ? shipAddr.ToString() : null,
+                        DocNumber = item.TryGetProperty("DocNumber", out var doc) ? doc.GetString() ?? " " : " ",
+                        CustomerName = item.TryGetProperty("CustomerRef", out var custRef) && custRef.TryGetProperty("name", out var custName) ? custName.GetString() ?? " " : " ",
+                        CustomerId = custRef.TryGetProperty("value", out var custId) ? custId.GetString() ?? " " : " ",
+                        TxnDate = DateTime.TryParse(item.GetProperty("TxnDate").GetString(), out var txnDate) ? txnDate : DateTime.UtcNow,
+                        DueDate = item.TryGetProperty("DueDate", out var dueProp) && DateTime.TryParse(dueProp.GetString(), out var dueDate) ? dueDate : DateTime.UtcNow,
 
-                        Store = item.TryGetProperty("Store", out var store) ? store.GetString() : null,
-                        CustomerMemo = item.TryGetProperty("CustomerMemo", out var memo) ? memo.GetProperty("value").GetString() : null,
-                        EmailStatus = item.TryGetProperty("EmailStatus", out var emailStatus) ? emailStatus.GetString() : null,
-                        SyncToken = item.TryGetProperty("SyncToken", out var syncToken) ? syncToken.GetString() : null,
+                        Subtotal = item.TryGetProperty("SubTotal", out var sub) ? sub.GetDecimal() : 0,
+                        TotalAmt = item.TryGetProperty("TotalAmt", out var total) ? total.GetDecimal() : 0,
+                        Balance = item.TryGetProperty("Balance", out var bal) ? bal.GetDecimal() : 0,
+
+                        CustomerEmail = item.TryGetProperty("BillEmail", out var email) && email.TryGetProperty("Address", out var addr) ? addr.GetString() ?? " " : " ",
+                        BillingAddressJson = item.TryGetProperty("BillAddr", out var billAddr) ? billAddr.ToString() ?? " " : " ",
+                        ShippingAddressJson = item.TryGetProperty("ShipAddr", out var shipAddr) ? shipAddr.ToString() ?? " " : " ",
+
+                        Store = item.TryGetProperty("Store", out var store) ? store.GetString() ?? " " : " ",
+                        CustomerMemo = item.TryGetProperty("CustomerMemo", out var memo) && memo.TryGetProperty("value", out var memoVal) ? memoVal.GetString() ?? " " : " ",
+                        EmailStatus = item.TryGetProperty("EmailStatus", out var emailStatus) ? emailStatus.GetString() ?? " " : " ",
+                        SyncToken = item.TryGetProperty("SyncToken", out var syncToken) ? syncToken.GetString() ?? " " : " ",
+                        Platform = "QBO",
 
                         LineItems = new List<InvoiceLineItem>(),
                     };
@@ -106,11 +121,11 @@ namespace WebApplication1.Controllers
 
                             var invoiceLine = new InvoiceLineItem
                             {
-
-                                Description = line.TryGetProperty("Description", out var desc) ? desc.GetString() : null,
+                                Description = line.TryGetProperty("Description", out var desc) ? desc.GetString() ?? " " : " ",
                                 Amount = line.TryGetProperty("Amount", out var amt) ? amt.GetDecimal() : 0,
-                                ItemRef = detail.GetProperty("ItemRef").GetProperty("value").GetString(),
-                                ItemName = detail.GetProperty("ItemRef").GetProperty("name").GetString()
+                                ItemRef = detail.TryGetProperty("ItemRef", out var itemRef) && itemRef.TryGetProperty("value", out var itemVal) ? itemVal.GetString() ?? " " : " ",
+                                ItemName =  itemRef.TryGetProperty("name", out var itemName) ? itemName.GetString() ?? " " : " ",
+                                PlatformLineItem = "QBO"
                             };
 
                             invoice.LineItems.Add(invoiceLine);
@@ -119,6 +134,7 @@ namespace WebApplication1.Controllers
 
                     _dbContext.Invoices.Add(invoice);
                 }
+
 
                 await _dbContext.SaveChangesAsync();
 
@@ -458,97 +474,187 @@ namespace WebApplication1.Controllers
 
 
 
-       [HttpPut("update-invoice/{id}")]
-        public async Task<IActionResult> UpdateInvoice(string id, [FromBody] UpdateInvoiceRequest request)
-        {
-            if (string.IsNullOrEmpty(id))
-                return BadRequest("Invoice ID is required.");
+       //[HttpPut("update-invoice/{id}")]
+       // public async Task<IActionResult> UpdateInvoice(string id, [FromBody] UpdateInvoiceRequest request)
+       // {
+       //     if (string.IsNullOrEmpty(id))
+       //         return BadRequest("Invoice ID is required.");
 
-            try
-            {
-                // 1. Get QuickBooks auth info from DB
-                var tokenRecord = await _dbContext.QuickBooksTokens
-                    .OrderByDescending(t => t.CreatedAt)
-                    .FirstOrDefaultAsync();
+       //     try
+       //     {
+       //         // 1. Get QuickBooks auth info from DB
+       //         var tokenRecord = await _dbContext.QuickBooksTokens
+       //             .OrderByDescending(t => t.CreatedAt)
+       //             .FirstOrDefaultAsync();
 
-                if (tokenRecord == null)
-                    return NotFound("No QuickBooks token found.");
+       //         if (tokenRecord == null)
+       //             return NotFound("No QuickBooks token found.");
 
-                var accessToken = tokenRecord.AccessToken;
-                var realmId = tokenRecord.RealmId;
+       //         var accessToken = tokenRecord.AccessToken;
+       //         var realmId = tokenRecord.RealmId;
 
-                if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(realmId))
-                    return BadRequest("Missing access token or realm ID.");
+       //         if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(realmId))
+       //             return BadRequest("Missing access token or realm ID.");
 
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                _httpClient.DefaultRequestHeaders.Accept.Clear();
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+       //         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+       //         _httpClient.DefaultRequestHeaders.Accept.Clear();
+       //         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                // 2. Fetch existing invoice to get SyncToken
-                var getUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/invoice/{id}?minorversion=75";
-                var getResponse = await _httpClient.GetAsync(getUrl);
-                var getContent = await getResponse.Content.ReadAsStringAsync();
+       //         // 2. Fetch existing invoice to get SyncToken
+       //         var getUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/invoice/{id}?minorversion=75";
+       //         var getResponse = await _httpClient.GetAsync(getUrl);
+       //         var getContent = await getResponse.Content.ReadAsStringAsync();
 
-                if (!getResponse.IsSuccessStatusCode)
-                {
-                    _logger.LogError("Failed to fetch invoice: {Content}", getContent);
-                    return StatusCode((int)getResponse.StatusCode, getContent);
-                }
+       //         if (!getResponse.IsSuccessStatusCode)
+       //         {
+       //             _logger.LogError("Failed to fetch invoice: {Content}", getContent);
+       //             return StatusCode((int)getResponse.StatusCode, getContent);
+       //         }
 
-                using var doc = JsonDocument.Parse(getContent);
-                var syncToken = doc.RootElement.GetProperty("Invoice").GetProperty("SyncToken").GetString();
+       //         using var doc = JsonDocument.Parse(getContent);
+       //         var syncToken = doc.RootElement.GetProperty("Invoice").GetProperty("SyncToken").GetString();
 
-                // 3. Construct payload for update
-                var lineItems = request.LineItems.Select(item => new
-                {
-                    Id = item.Id,
-                    DetailType = "SalesItemLineDetail",
-                    Amount = item.Amount,
-                    Description = item.Description,
-                    SalesItemLineDetail = new
-                    {
-                        ItemRef = new { value = item.ItemId },
-                        Qty = item.Quantity,
-                        UnitPrice = item.UnitPrice
-                    }
-                });
+       //         // 3. Construct payload for update
+       //         var lineItems = request.LineItems.Select(item => new
+       //         {
+       //             Id = item.Id,
+       //             DetailType = "SalesItemLineDetail",
+       //             Amount = item.Amount,
+       //             Description = item.Description,
+       //             SalesItemLineDetail = new
+       //             {
+       //                 ItemRef = new { value = item.ItemId },
+       //                 Qty = item.Quantity,
+       //                 UnitPrice = item.UnitPrice
+       //             }
+       //         });
 
-                var updatePayload = new
-                {
-                    Id = id,
-                    SyncToken = syncToken,
-                    sparse = true,
-                    CustomerRef = new { value = request.CustomerId },
-                    Line = lineItems,
-                    DocNumber = request.InvoiceNumber,
-                    TxnDate = request.Date?.ToString("yyyy-MM-dd"),
-                    DueDate = request.DueDate?.ToString("yyyy-MM-dd"),
-                    PrivateNote = request.Notes
-                };
+       //         var updatePayload = new
+       //         {
+       //             Id = id,
+       //             SyncToken = syncToken,
+       //             sparse = true,
+       //             CustomerRef = new { value = request.CustomerId },
+       //             Line = lineItems,
+       //             DocNumber = request.InvoiceNumber,
+       //             TxnDate = request.Date?.ToString("yyyy-MM-dd"),
+       //             DueDate = request.DueDate?.ToString("yyyy-MM-dd"),
+       //             PrivateNote = request.Notes
+       //         };
 
-                var jsonBody = JsonSerializer.Serialize(updatePayload);
-                var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+       //         var jsonBody = JsonSerializer.Serialize(updatePayload);
+       //         var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
 
-                // 4. Send update request
-                var updateUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/invoice?minorversion=75";
-                var updateResponse = await _httpClient.PostAsync(updateUrl, content);
-                var updateContent = await updateResponse.Content.ReadAsStringAsync();
+       //         // 4. Send update request
+       //         var updateUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/invoice?minorversion=75";
+       //         var updateResponse = await _httpClient.PostAsync(updateUrl, content);
+       //         var updateContent = await updateResponse.Content.ReadAsStringAsync();
 
-                if (!updateResponse.IsSuccessStatusCode)
-                {
-                    _logger.LogError("Invoice update failed: {Content}", updateContent);
-                    return StatusCode((int)updateResponse.StatusCode, updateContent);
-                }
+       //         if (!updateResponse.IsSuccessStatusCode)
+       //         {
+       //             _logger.LogError("Invoice update failed: {Content}", updateContent);
+       //             return StatusCode((int)updateResponse.StatusCode, updateContent);
+       //         }
 
-                var updatedInvoiceJson = JsonDocument.Parse(updateContent).RootElement;
-                return Ok(updatedInvoiceJson);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while updating invoice.");
-                return StatusCode(500, $"Server error: {ex.Message}");
-            }
-        }
+       //         var updatedInvoiceJson = JsonDocument.Parse(updateContent).RootElement;
+       //         return Ok(updatedInvoiceJson);
+       //     }
+       //     catch (Exception ex)
+       //     {
+       //         _logger.LogError(ex, "Error while updating invoice.");
+       //         return StatusCode(500, $"Server error: {ex.Message}");
+       //     }
+       // }  //[HttpPut("update-invoice/{id}")]
+       // public async Task<IActionResult> UpdateInvoice(string id, [FromBody] UpdateInvoiceRequest request)
+       // {
+       //     if (string.IsNullOrEmpty(id))
+       //         return BadRequest("Invoice ID is required.");
+
+       //     try
+       //     {
+       //         // 1. Get QuickBooks auth info from DB
+       //         var tokenRecord = await _dbContext.QuickBooksTokens
+       //             .OrderByDescending(t => t.CreatedAt)
+       //             .FirstOrDefaultAsync();
+
+       //         if (tokenRecord == null)
+       //             return NotFound("No QuickBooks token found.");
+
+       //         var accessToken = tokenRecord.AccessToken;
+       //         var realmId = tokenRecord.RealmId;
+
+       //         if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(realmId))
+       //             return BadRequest("Missing access token or realm ID.");
+
+       //         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+       //         _httpClient.DefaultRequestHeaders.Accept.Clear();
+       //         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+       //         // 2. Fetch existing invoice to get SyncToken
+       //         var getUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/invoice/{id}?minorversion=75";
+       //         var getResponse = await _httpClient.GetAsync(getUrl);
+       //         var getContent = await getResponse.Content.ReadAsStringAsync();
+
+       //         if (!getResponse.IsSuccessStatusCode)
+       //         {
+       //             _logger.LogError("Failed to fetch invoice: {Content}", getContent);
+       //             return StatusCode((int)getResponse.StatusCode, getContent);
+       //         }
+
+       //         using var doc = JsonDocument.Parse(getContent);
+       //         var syncToken = doc.RootElement.GetProperty("Invoice").GetProperty("SyncToken").GetString();
+
+       //         // 3. Construct payload for update
+       //         var lineItems = request.LineItems.Select(item => new
+       //         {
+       //             Id = item.Id,
+       //             DetailType = "SalesItemLineDetail",
+       //             Amount = item.Amount,
+       //             Description = item.Description,
+       //             SalesItemLineDetail = new
+       //             {
+       //                 ItemRef = new { value = item.ItemId },
+       //                 Qty = item.Quantity,
+       //                 UnitPrice = item.UnitPrice
+       //             }
+       //         });
+
+       //         var updatePayload = new
+       //         {
+       //             Id = id,
+       //             SyncToken = syncToken,
+       //             sparse = true,
+       //             CustomerRef = new { value = request.CustomerId },
+       //             Line = lineItems,
+       //             DocNumber = request.InvoiceNumber,
+       //             TxnDate = request.Date?.ToString("yyyy-MM-dd"),
+       //             DueDate = request.DueDate?.ToString("yyyy-MM-dd"),
+       //             PrivateNote = request.Notes
+       //         };
+
+       //         var jsonBody = JsonSerializer.Serialize(updatePayload);
+       //         var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+       //         // 4. Send update request
+       //         var updateUrl = $"https://sandbox-quickbooks.api.intuit.com/v3/company/{realmId}/invoice?minorversion=75";
+       //         var updateResponse = await _httpClient.PostAsync(updateUrl, content);
+       //         var updateContent = await updateResponse.Content.ReadAsStringAsync();
+
+       //         if (!updateResponse.IsSuccessStatusCode)
+       //         {
+       //             _logger.LogError("Invoice update failed: {Content}", updateContent);
+       //             return StatusCode((int)updateResponse.StatusCode, updateContent);
+       //         }
+
+       //         var updatedInvoiceJson = JsonDocument.Parse(updateContent).RootElement;
+       //         return Ok(updatedInvoiceJson);
+       //     }
+       //     catch (Exception ex)
+       //     {
+       //         _logger.LogError(ex, "Error while updating invoice.");
+       //         return StatusCode(500, $"Server error: {ex.Message}");
+       //     }
+       // }
 
 
 

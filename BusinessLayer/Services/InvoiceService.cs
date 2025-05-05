@@ -64,10 +64,10 @@ namespace WebApplication1.Services
                         CustomerName = item.GetProperty("CustomerRef").GetProperty("name").GetString(),
                         CustomerId = item.GetProperty("CustomerRef").GetProperty("value").GetString(),
                         TxnDate = DateTime.Parse(item.GetProperty("TxnDate").GetString()),
-                        DueDate = item.TryGetProperty("DueDate", out var due) ? DateTime.Parse(due.GetString()) : null,
-                        Subtotal = item.TryGetProperty("SubTotal", out var sub) ? sub.GetDecimal() : null,
-                        TotalAmt = item.TryGetProperty("TotalAmt", out var total) ? total.GetDecimal() : null,
-                        Balance = item.TryGetProperty("Balance", out var bal) ? bal.GetDecimal() : null,
+                        DueDate = item.TryGetProperty("DueDate", out var due) ? DateTime.Parse(due.GetString()) : DateTime.UtcNow,
+                        Subtotal = item.TryGetProperty("SubTotal", out var sub) ? sub.GetDecimal() : 0,
+                        TotalAmt = item.TryGetProperty("TotalAmt", out var total) ? total.GetDecimal() : 0,
+                        Balance = item.TryGetProperty("Balance", out var bal) ? bal.GetDecimal() : 0,
                         CustomerEmail = item.TryGetProperty("BillEmail", out var email) ? email.GetProperty("Address").GetString() : null,
                         BillingAddressJson = item.TryGetProperty("BillAddr", out var billAddr) ? billAddr.ToString() : null,
                         ShippingAddressJson = item.TryGetProperty("ShipAddr", out var shipAddr) ? shipAddr.ToString() : null,
@@ -89,7 +89,8 @@ namespace WebApplication1.Services
                                 Description = line.TryGetProperty("Description", out var desc) ? desc.GetString() : null,
                                 Amount = line.TryGetProperty("Amount", out var amt) ? amt.GetDecimal() : 0,
                                 ItemRef = detail.GetProperty("ItemRef").GetProperty("value").GetString(),
-                                ItemName = detail.GetProperty("ItemRef").GetProperty("name").GetString()
+                                ItemName = detail.GetProperty("ItemRef").GetProperty("name").GetString(),
+                                PlatformLineItem = "Xero"
                             };
 
                             invoice.LineItems.Add(invoiceLine);
