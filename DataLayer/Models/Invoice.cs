@@ -60,5 +60,9 @@ public class Invoice
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<InvoiceLineItem> LineItems { get; set; } = new List<InvoiceLineItem>();
+
+
 }
+
+
 

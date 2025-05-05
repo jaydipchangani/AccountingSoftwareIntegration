@@ -50,5 +50,14 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
+
+        [HttpDelete("{invoiceId}")]
+        public async Task<IActionResult> DeleteInvoice(string invoiceId)
+        {
+            // Call the DeleteInvoice service method and return its result
+            var result = await _xeroInvoiceService.DeleteInvoice(invoiceId);
+            return result;
+        }
     }
 }

@@ -772,6 +772,22 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "Method": "DeleteInvoice",
+    "RelativePath": "api/XeroInvoice/{invoiceId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "invoiceId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
     "Method": "AddInvoice",
     "RelativePath": "api/XeroInvoice/add-invoice",
     "HttpMethod": "POST",

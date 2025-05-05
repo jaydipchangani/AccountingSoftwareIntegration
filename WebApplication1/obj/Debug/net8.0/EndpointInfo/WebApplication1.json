@@ -1250,6 +1250,28 @@
           }
         }
       }
+    },
+    "/api/XeroInvoice/{invoiceId}": {
+      "delete": {
+        "tags": [
+          "XeroInvoice"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
