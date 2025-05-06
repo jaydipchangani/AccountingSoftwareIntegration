@@ -54,6 +54,15 @@ namespace BusinessLayer.Services.Xero
             var doc = JObject.Parse(json);
             var invoicesJson = doc["Invoices"];
 
+            var existingXeroInvoices = await _db.Invoices
+            .Include(i => i.LineItems)
+            .Where(i => i.Platform == "Xero")
+            .ToListAsync();
+
+            _db.InvoiceLineItems.RemoveRange(existingXeroInvoices.SelectMany(i => i.LineItems));
+            _db.Invoices.RemoveRange(existingXeroInvoices);
+            await _db.SaveChangesAsync();
+
             int count = 0;
 
             foreach (var invoiceJson in invoicesJson)
