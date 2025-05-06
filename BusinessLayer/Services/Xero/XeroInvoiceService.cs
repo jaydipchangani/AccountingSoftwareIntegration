@@ -276,20 +276,16 @@ namespace BusinessLayer.Services.Xero
                 return new BadRequestObjectResult("Invoice status must be 'DRAFT' to delete.");
             }
 
-            // Step 4: Fetch 'Type' from local DB using InvoiceID
-            if (!Guid.TryParse(invoiceId, out Guid parsedInvoiceId))
-            {
-                return new BadRequestObjectResult("Invalid InvoiceID format.");
-            }
+            // Step 4: Fetch local invoice where QuickBooksId == invoiceId
+            var localInvoice = await _context.Invoices
+                .FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
 
-            var localInvoice = await _context.Invoices.FindAsync(parsedInvoiceId);
             if (localInvoice == null)
             {
                 return new NotFoundObjectResult("Invoice not found in local database.");
             }
 
-
-            var invoiceType = localInvoice.XeroInvoiceType; // Should be "ACCREC" or "ACCPAY"
+            var invoiceType = localInvoice.XeroInvoiceType; // "ACCREC" or "ACCPAY"
 
             // Step 5: Construct the payload for deletion
             var payload = new
@@ -304,6 +300,7 @@ namespace BusinessLayer.Services.Xero
             }
         }
             };
+
             var jsonPayload = JsonSerializer.Serialize(payload);
 
             var deleteRequest = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices")
@@ -325,6 +322,7 @@ namespace BusinessLayer.Services.Xero
 
             return new OkObjectResult("Invoice deleted successfully.");
         }
+
 
 
 
