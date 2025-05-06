@@ -1178,6 +1178,18 @@
         }
       }
     },
+    "/api/Xero/get-xero-customers": {
+      "get": {
+        "tags": [
+          "Xero"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/XeroAccounts/fetch-chart-of-accounts-from-xero": {
       "get": {
         "tags": [

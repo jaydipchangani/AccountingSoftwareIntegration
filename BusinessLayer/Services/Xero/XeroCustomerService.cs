@@ -383,7 +383,13 @@ namespace WebApplication1.Services
             return responseBody;
         }
 
-
+        public async Task<List<Customer>> GetXeroCustomersAsync()
+        {
+            return await _context.Customers
+                .Where(c => c.Company == "Xero")
+                .OrderBy(c => c.DisplayName)
+                .ToListAsync();
+        }
 
     }
 }

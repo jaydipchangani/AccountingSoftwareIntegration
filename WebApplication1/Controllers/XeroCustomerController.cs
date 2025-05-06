@@ -85,6 +85,20 @@ namespace WebApplication1.Controllers
         }
 
 
+        [HttpGet("get-xero-customers")]
+        public async Task<IActionResult> GetXeroCustomers()
+        {
+            try
+            {
+                var customers = await _xeroService.GetXeroCustomersAsync();
+                return Ok(customers);
+            }
+            catch (Exception ex)
+            {
+               
+                return StatusCode(500, "An error occurred while fetching Xero customers.");
+            }
+        }
 
     }
 }

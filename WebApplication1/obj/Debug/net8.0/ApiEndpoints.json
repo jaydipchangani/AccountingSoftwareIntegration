@@ -716,6 +716,16 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
+    "Method": "GetXeroCustomers",
+    "RelativePath": "api/Xero/get-xero-customers",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroController",
     "Method": "SyncContacts",
     "RelativePath": "api/Xero/sync-contacts",
     "HttpMethod": "POST",
