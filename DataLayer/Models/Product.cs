@@ -23,6 +23,8 @@ namespace WebApplication1.Models
 
         public bool? IsActive { get; set; } = true;
 
+        public bool? IsSold { get; set; } = true;
+
         public string? QuickBooksItemId { get; set; }
         public string? QuickBooksUserId { get; set; }
 
@@ -59,6 +61,8 @@ namespace WebApplication1.Models
         public string ItemID { get; set; }
         public string Name { get; set; }
         public string Code { get; set; }
+
+        public bool? IsSold { get; set; } = true;
         public string Description { get; set; }
         public string PurchaseDescription { get; set; }
         public bool IsTrackedAsInventory { get; set; }

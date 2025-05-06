@@ -247,7 +247,7 @@ catch (Exception dbEx)
         }
 
 
-public async Task<IActionResult> DeleteInvoice(string invoiceId)
+        public async Task<IActionResult> DeleteInvoice(string invoiceId)
 {
 // Step 1: Fetch access token and tenantId from the database
 var tokenDetails = await _db.QuickBooksTokens
@@ -340,67 +340,66 @@ return new OkObjectResult("Invoice deleted successfully.");
 }
 
 
-public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
-{
-// Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
-var existingInvoice = await _context.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
+        public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
+        {
+        // Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
+        var existingInvoice = await _context.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
 
-if (existingInvoice == null)
-    throw new Exception($"No local invoice found with InvoiceID (QuickBooksId): {invoiceId}");
+        if (existingInvoice == null)
+            throw new Exception($"No local invoice found with InvoiceID (QuickBooksId): {invoiceId}");
 
-// Step 2: Ensure the status is "DRAFT" before proceeding
-if (!string.Equals(existingInvoice.XeroStatus, "DRAFT", StringComparison.OrdinalIgnoreCase))
-    throw new Exception("Invoice cannot be updated because its status is not 'DRAFT'.");
+        // Step 2: Ensure the status is "DRAFT" before proceeding
+        if (!string.Equals(existingInvoice.XeroStatus, "DRAFT", StringComparison.OrdinalIgnoreCase))
+            throw new Exception("Invoice cannot be updated because its status is not 'DRAFT'.");
 
-// Step 3: Build the payload for Xero invoice update
-var payload = new
-{
-    Invoices = new[]
-    {
-new
-{
-    InvoiceID = invoiceId, // InvoiceID from the request body
-    Type = existingInvoice.XeroInvoiceType, // Existing invoice type from the database
-    //Contact = new { ContactID = existingInvoice.XeroContactId }, // ContactID (already stored in DB)
-    LineItems = dto.LineItems.Select(item => new
-    {
-        item.Description,
-        item.Quantity,
-        item.UnitAmount,
-        item.AccountCode,
-        item.TaxType,
-        item.LineAmount
-    }).ToList(),
-    Date = dto.Date.ToString("yyyy-MM-dd"),
-    DueDate = dto.DueDate.ToString("yyyy-MM-dd"),
-    Reference = dto.Reference,
-    Status = dto.Status ?? existingInvoice.XeroStatus // Preserve existing status unless specified
-}
-}
-};
+        // Step 3: Build the payload for Xero invoice update
+        var payload = new
+        {
+            Invoices = new[]
+            {
+        new
+        {
+        InvoiceID = invoiceId, // InvoiceID from the request body
+        Type = existingInvoice.XeroInvoiceType, // Existing invoice type from the database
+        //Contact = new { ContactID = existingInvoice.XeroContactId }, // ContactID (already stored in DB)
+        LineItems = dto.LineItems.Select(item => new
+        {
+                item.Description,
+                item.Quantity,
+                item.UnitAmount,
+                item.AccountCode,
+                item.TaxType,
+                item.LineAmount
+            }).ToList(),
+            Date = dto.Date.ToString("yyyy-MM-dd"),
+            DueDate = dto.DueDate.ToString("yyyy-MM-dd"),
+            Reference = dto.Reference,
+            Status = dto.Status ?? existingInvoice.XeroStatus // Preserve existing status unless specified
+        }
+        }
+        };
 
-// Step 4: Send the update request to Xero API
-var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
-request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-request.Headers.Add("xero-tenant-id", tenantId);
-request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        // Step 4: Send the update request to Xero API
+        var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Add("xero-tenant-id", tenantId);
+        request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-var response = await _httpClient.SendAsync(request);
+        var response = await _httpClient.SendAsync(request);
 
-// Step 5: Check if the response is successful
-if (!response.IsSuccessStatusCode)
-{
-    var error = await response.Content.ReadAsStringAsync();
-    throw new Exception($"Xero invoice update failed: {error}");
-}
+        // Step 5: Check if the response is successful
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Xero invoice update failed: {error}");
+        }
 
-// Step 6: Optionally, parse the updated invoice data (if needed)
-var responseBody = await response.Content.ReadAsStringAsync();
-using var doc = JsonDocument.Parse(responseBody);
-var updatedInvoice = doc.RootElement.GetProperty("Invoices")[0];
-var updatedInvoiceId = updatedInvoice.GetProperty("InvoiceID").GetString();
+        // Step 6: Optionally, parse the updated invoice data (if needed)
+        var responseBody = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(responseBody);
+        var updatedInvoice = doc.RootElement.GetProperty("Invoices")[0];
+        var updatedInvoiceId = updatedInvoice.GetProperty("InvoiceID").GetString();
 
-// Optional: You can update local database fields if needed based on the response
 
 return updatedInvoiceId ?? invoiceId;
 }

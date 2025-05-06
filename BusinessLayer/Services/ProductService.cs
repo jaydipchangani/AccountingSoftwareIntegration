@@ -150,7 +150,7 @@ public class ProductService
                 Description = item.Description ?? "",
                 Type = isTracked ? "Inventory" : "Service",
                 IsTrackedAsInventory = isTracked,
-
+                IsSold= item.IsSold,
                 QuantityOnHand = item.QuantityOnHand ?? 0,
                 AsOfDate = DateTime.UtcNow,
                 AssetAccount = item.InventoryAssetAccountCode,

@@ -683,7 +683,7 @@ namespace WebApplication1.Controllers
             try
             {
                 var products = await _dbContext.Products
-                    .Where(p => p.Platform == "Xero")
+                    .Where(p => p.Platform == "Xero" && p.IsSold == true)
                     .OrderBy(p => p.Name)
                     .Select(p => new
                     {
@@ -696,6 +696,7 @@ namespace WebApplication1.Controllers
                         QuickBooksItemId = p.QuickBooksItemId.ToString() ?? " ",
                         isActive = p.IsActive,
                         code = p.Code,
+                        IsSold = p.IsSold,
                         PurchaseCOGSAccountCode = p.PurchaseCOGSAccountCode,
                         PurchaseUnitPrice = p.PurchaseUnitPrice,
                         SalesUnitPrice = p.SalesUnitPrice,

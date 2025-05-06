@@ -1748,6 +1748,10 @@
             "type": "boolean",
             "nullable": true
           },
+          "isSold": {
+            "type": "boolean",
+            "nullable": true
+          },
           "quickBooksItemId": {
             "type": "string",
             "nullable": true
