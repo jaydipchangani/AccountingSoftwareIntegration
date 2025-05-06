@@ -386,7 +386,7 @@ namespace WebApplication1.Services
         public async Task<List<Customer>> GetXeroCustomersAsync()
         {
             return await _context.Customers
-                .Where(c => c.Company == "Xero")
+                .Where(c => c.Company == "Xero" && c.Active == true)
                 .OrderBy(c => c.DisplayName)
                 .ToListAsync();
         }

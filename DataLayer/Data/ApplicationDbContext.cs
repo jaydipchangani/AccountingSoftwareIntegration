@@ -29,9 +29,14 @@ namespace WebApplication1.Data
 
         public DbSet<XeroToken> XeroTokens { get; set; }
 
+        public DbSet<SyncState> SyncStates { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<SyncState>()
+            .HasIndex(s => new { s.EntityName, s.Platform })
+            .IsUnique();
+
             // Add index constraints
             modelBuilder.Entity<Invoice>()
                 .HasIndex(i => i.QuickBooksId)

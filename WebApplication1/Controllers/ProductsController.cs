@@ -677,7 +677,7 @@ namespace WebApplication1.Controllers
             }
         }
 
-        [HttpGet("get-xero-products")]
+        [HttpGet("active")]
         public async Task<IActionResult> GetXeroProducts()
         {
             try

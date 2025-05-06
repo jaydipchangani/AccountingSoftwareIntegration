@@ -85,7 +85,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpGet("get-xero-customers")]
+        [HttpGet("active")]
         public async Task<IActionResult> GetXeroCustomers()
         {
             try

@@ -836,7 +836,7 @@
         }
       }
     },
-    "/api/Products/get-xero-products": {
+    "/api/Products/active": {
       "get": {
         "tags": [
           "Products"
@@ -1190,7 +1190,7 @@
         }
       }
     },
-    "/api/Xero/get-xero-customers": {
+    "/api/Xero/active": {
       "get": {
         "tags": [
           "Xero"
@@ -1266,7 +1266,7 @@
         }
       }
     },
-    "/api/XeroInvoice/fetch": {
+    "/api/XeroInvoice": {
       "get": {
         "tags": [
           "XeroInvoice"
@@ -1276,9 +1276,7 @@
             "description": "OK"
           }
         }
-      }
-    },
-    "/api/XeroInvoice/add-invoice": {
+      },
       "post": {
         "tags": [
           "XeroInvoice"
@@ -1329,9 +1327,7 @@
             "description": "OK"
           }
         }
-      }
-    },
-    "/api/XeroInvoice/update-invoice/{invoiceId}": {
+      },
       "post": {
         "tags": [
           "XeroInvoice"
@@ -1370,9 +1366,7 @@
             "description": "OK"
           }
         }
-      }
-    },
-    "/api/XeroInvoice/get-invoice/{invoiceId}": {
+      },
       "get": {
         "tags": [
           "XeroInvoice"

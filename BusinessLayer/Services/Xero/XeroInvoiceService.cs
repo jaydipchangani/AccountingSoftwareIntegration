@@ -11,6 +11,10 @@ using BusinessLayer.Services.Xero;
 using Microsoft.EntityFrameworkCore;
 using DataLayer.Models.Xero;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
+using DataLayer.Models;
+using Microsoft.EntityFrameworkCore;
+
 
 
 namespace BusinessLayer.Services.Xero
@@ -20,55 +24,58 @@ namespace BusinessLayer.Services.Xero
         private readonly ApplicationDbContext _db;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly HttpClient _httpClient;
-        private readonly ApplicationDbContext _context;
 
-        public XeroInvoiceService(ApplicationDbContext db, IHttpClientFactory httpClientFactory, HttpClient httpClient, ApplicationDbContext context)
+
+        public XeroInvoiceService(ApplicationDbContext db, IHttpClientFactory httpClientFactory, HttpClient httpClient)
         {
             _db = db;
             _httpClientFactory = httpClientFactory;
             _httpClient = httpClient;
-            _context = context;
+
         }
 
         public async Task<int> FetchAndStoreInvoicesAsync()
         {
             var auth = await _db.QuickBooksTokens
-                .Where(x => x.Company == "Xero")  // Filter by Xero company
+                .Where(x => x.Company == "Xero")
                 .OrderByDescending(x => x.CreatedAtUtc)
                 .FirstOrDefaultAsync();
 
             if (auth == null)
                 throw new Exception("Xero auth details not found.");
 
+            // Step 1: Get the last sync timestamp
+            var syncState = await _db.SyncStates
+     .FirstOrDefaultAsync(x => x.EntityName == "Invoice" && x.Platform == "Xero");
+
+
+            var lastSyncedAt = syncState?.LastSyncedAt ?? DateTime.UtcNow.AddDays(-30); // fallback to 30 days ago
+
+            var formattedSyncTime = lastSyncedAt.ToString("R"); // RFC1123 format
+
+            // Step 2: Prepare HTTP client
             var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
             client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.IfModifiedSince = lastSyncedAt;
 
             var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices?page=1");
+
+            if (response.StatusCode == HttpStatusCode.NotModified)
+                return 0; // No new or updated invoices
+
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
-            Console.WriteLine(json);  // Or use any logger to output the JSON string
-
             var doc = JObject.Parse(json);
             var invoicesJson = doc["Invoices"];
-
-            var existingXeroInvoices = await _db.Invoices
-            .Include(i => i.LineItems)
-            .Where(i => i.Platform == "Xero")
-            .ToListAsync();
-
-            _db.InvoiceLineItems.RemoveRange(existingXeroInvoices.SelectMany(i => i.LineItems));
-            _db.Invoices.RemoveRange(existingXeroInvoices);
-            await _db.SaveChangesAsync();
 
             int count = 0;
 
             foreach (var invoiceJson in invoicesJson)
             {
                 var invoiceId = invoiceJson["InvoiceID"]?.ToString();
-
                 var existing = await _db.Invoices.FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
                 if (existing != null) continue;
 
@@ -88,7 +95,7 @@ namespace BusinessLayer.Services.Xero
                     XeroStatus = invoiceJson["Status"]?.ToString() ?? string.Empty,
                     XeroBrandingThemeID = invoiceJson["BrandingThemeID"]?.ToString() ?? string.Empty,
                     XeroCurrencyCode = invoiceJson["CurrencyCode"]?.ToString() ?? string.Empty,
-                    XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1, // Assuming default value as 1
+                    XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1,
                     XeroIsDiscounted = invoiceJson["IsDiscounted"]?.ToObject<bool>() ?? false,
                     XeroLineAmountTypes = invoiceJson["LineAmountTypes"]?.ToString() ?? string.Empty,
                     CreatedAt = DateTime.UtcNow,
@@ -96,7 +103,6 @@ namespace BusinessLayer.Services.Xero
                     Platform = "Xero",
                 };
 
-                // Line Items
                 foreach (var lineJson in invoiceJson["LineItems"])
                 {
                     invoice.LineItems.Add(new InvoiceLineItem
@@ -120,8 +126,28 @@ namespace BusinessLayer.Services.Xero
             }
 
             await _db.SaveChangesAsync();
+
+            // Step 3: Update sync time
+            if (syncState == null)
+            {
+                syncState = new SyncState
+                {
+                    EntityName = "Invoice",
+                    Platform = "Xero",
+                    LastSyncedAt = DateTime.UtcNow
+                };
+                _db.SyncStates.Add(syncState);
+            }
+            else
+            {
+                syncState.LastSyncedAt = DateTime.UtcNow;
+            }
+
+            await _db.SaveChangesAsync();
+
             return count;
         }
+
 
         private DateTime TryGetDateTime(JToken jsonElement, string propertyName)
         {
@@ -293,7 +319,7 @@ if (!xeroInvoice.Status.Equals("DRAFT", StringComparison.OrdinalIgnoreCase))
 }
 
 // Step 4: Fetch local invoice where QuickBooksId == invoiceId
-var localInvoice = await _context.Invoices
+var localInvoice = await _db.Invoices
     .FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
 
 if (localInvoice == null)
@@ -334,7 +360,7 @@ if (!deleteResponse.IsSuccessStatusCode)
 
 // Step 6: Update the invoice status in the local database
 localInvoice.XeroStatus = "DELETED";
-await _context.SaveChangesAsync();
+await _db.SaveChangesAsync();
 
 return new OkObjectResult("Invoice deleted successfully.");
 }
@@ -343,7 +369,7 @@ return new OkObjectResult("Invoice deleted successfully.");
         public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
         {
         // Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
-        var existingInvoice = await _context.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
+        var existingInvoice = await _db.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
 
         if (existingInvoice == null)
             throw new Exception($"No local invoice found with InvoiceID (QuickBooksId): {invoiceId}");
@@ -408,7 +434,7 @@ return updatedInvoiceId ?? invoiceId;
         public async Task<string> GetInvoiceFromXeroByIdAsync(string invoiceId)
         {
             // Step 1: Get the latest Xero token
-            var token = await _context.QuickBooksTokens
+            var token = await _db.QuickBooksTokens
                 .Where(t => t.Company == "Xero")
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefaultAsync();

@@ -21,7 +21,7 @@ namespace WebApplication1.Controllers
             _context = context;
         }
 
-        [HttpGet("fetch")]
+        [HttpGet]
         public async Task<IActionResult> FetchAndStoreXeroInvoices()
         {
             var result = await _xeroInvoiceService.FetchAndStoreInvoicesAsync();
@@ -30,7 +30,7 @@ namespace WebApplication1.Controllers
 
 
 
-        [HttpPost("add-invoice")]
+        [HttpPost]
         public async Task<IActionResult> AddInvoice([FromBody] XeroInvoiceCreateDto dto)
         {
             var auth = await _context.QuickBooksTokens
@@ -61,7 +61,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpPost("update-invoice/{invoiceId}")]
+        [HttpPost("{invoiceId}")]
         public async Task<IActionResult> UpdateInvoice(string invoiceId, [FromBody] XeroInvoiceUpdateDto dto)
         {
             var auth = await _context.QuickBooksTokens
@@ -83,7 +83,7 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpGet("get-invoice/{invoiceId}")]
+        [HttpGet("{invoiceId}")]
         public async Task<IActionResult> GetInvoiceById(string invoiceId)
         {
             try

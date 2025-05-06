@@ -397,6 +397,16 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "GetXeroProducts",
+    "RelativePath": "api/Products/active",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
     "Method": "AddProduct",
     "RelativePath": "api/Products/add-product",
     "HttpMethod": "POST",
@@ -487,16 +497,6 @@
         "IsRequired": false
       }
     ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.ProductsController",
-    "Method": "GetXeroProducts",
-    "RelativePath": "api/Products/get-xero-products",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -694,6 +694,16 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
+    "Method": "GetXeroCustomers",
+    "RelativePath": "api/Xero/active",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroController",
     "Method": "AddCustomerToXero",
     "RelativePath": "api/Xero/add-customer-to-xero",
     "HttpMethod": "POST",
@@ -722,16 +732,6 @@
         "IsRequired": true
       }
     ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.XeroController",
-    "Method": "GetXeroCustomers",
-    "RelativePath": "api/Xero/get-xero-customers",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -813,6 +813,32 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "Method": "FetchAndStoreXeroInvoices",
+    "RelativePath": "api/XeroInvoice",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "Method": "AddInvoice",
+    "RelativePath": "api/XeroInvoice",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "DataLayer.Models.Xero.XeroInvoiceCreateDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
     "Method": "DeleteInvoice",
     "RelativePath": "api/XeroInvoice/{invoiceId}",
     "HttpMethod": "DELETE",
@@ -829,50 +855,8 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
-    "Method": "AddInvoice",
-    "RelativePath": "api/XeroInvoice/add-invoice",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "dto",
-        "Type": "DataLayer.Models.Xero.XeroInvoiceCreateDto",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
-    "Method": "FetchAndStoreXeroInvoices",
-    "RelativePath": "api/XeroInvoice/fetch",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
-    "Method": "GetInvoiceById",
-    "RelativePath": "api/XeroInvoice/get-invoice/{invoiceId}",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "invoiceId",
-        "Type": "System.String",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
     "Method": "UpdateInvoice",
-    "RelativePath": "api/XeroInvoice/update-invoice/{invoiceId}",
+    "RelativePath": "api/XeroInvoice/{invoiceId}",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -885,6 +869,22 @@
       {
         "Name": "dto",
         "Type": "DataLayer.Models.Xero.XeroInvoiceUpdateDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "Method": "GetInvoiceById",
+    "RelativePath": "api/XeroInvoice/{invoiceId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "invoiceId",
+        "Type": "System.String",
         "IsRequired": true
       }
     ],
