@@ -236,8 +236,9 @@ namespace BusinessLayer.Services.Xero
         {
             // Step 1: Fetch access token and tenantId from the database
             var tokenDetails = await _db.QuickBooksTokens
-                                         .OrderByDescending(t => t.CreatedAtUtc)
-                                         .FirstOrDefaultAsync();
+                .Where(x => x.Company == "Xero")  // Filter by Xero company
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .FirstOrDefaultAsync();
 
             if (tokenDetails == null)
             {
