@@ -855,6 +855,22 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "Method": "GetInvoiceById",
+    "RelativePath": "api/XeroInvoice/get-invoice/{invoiceId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "invoiceId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
     "Method": "UpdateInvoice",
     "RelativePath": "api/XeroInvoice/update-invoice/{invoiceId}",
     "HttpMethod": "POST",

@@ -397,7 +397,37 @@ return updatedInvoiceId ?? invoiceId;
 }
 
 
+        public async Task<string> GetInvoiceFromXeroByIdAsync(string invoiceId)
+        {
+            // Step 1: Get the latest Xero token
+            var token = await _context.QuickBooksTokens
+                .Where(t => t.Company == "Xero")
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync();
 
+            if (token == null)
+                throw new Exception("No Xero access token found.");
 
-}
+            var accessToken = token.AccessToken;
+            var tenantId = token.TenantId;
+
+            // Step 2: Build request
+            var url = $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}";
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Add("xero-tenant-id", tenantId);
+
+            // Step 3: Send request
+            var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Xero API Error: {error}");
+            }
+
+            // Step 4: Return raw JSON
+            return await response.Content.ReadAsStringAsync();
+        }
+
+    }
 }

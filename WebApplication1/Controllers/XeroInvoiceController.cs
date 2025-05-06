@@ -82,5 +82,20 @@ namespace WebApplication1.Controllers
             }
         }
 
+
+        [HttpGet("get-invoice/{invoiceId}")]
+        public async Task<IActionResult> GetInvoiceById(string invoiceId)
+        {
+            try
+            {
+                var invoiceJson = await _xeroInvoiceService.GetInvoiceFromXeroByIdAsync(invoiceId);
+                return Content(invoiceJson, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error fetching invoice: {ex.Message}");
+            }
+        }
+
     }
 }
