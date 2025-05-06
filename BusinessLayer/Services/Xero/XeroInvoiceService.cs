@@ -174,6 +174,8 @@ namespace BusinessLayer.Services.Xero
 
             invoiceId = xeroInvoice.GetProperty("InvoiceID").GetString() ?? "";
 
+            /* 
+
             // Step 4: Prepare local invoice entity
             var invoice = new Invoice
             {
@@ -215,186 +217,187 @@ namespace BusinessLayer.Services.Xero
             }
 
             // Step 5: Save to local DB
-            try
-            {
-                Console.WriteLine("Saving invoice to local database...");
 
-                _context.Invoices.Add(invoice);
-                await _context.SaveChangesAsync();
+try
+{
+    Console.WriteLine("Saving invoice to local database...");
 
-                _context.InvoiceLineItems.AddRange(invoice.LineItems);
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception dbEx)
-            {
-                // Rollback strategy or error handling
-                throw new Exception($"Invoice was saved to Xero but failed to save in local DB. InvoiceID: {invoiceId}, Error: {dbEx.Message}");
-            }
+    _context.Invoices.Add(invoice);
+    await _context.SaveChangesAsync();
 
-            return invoice.QuickBooksId;
+    _context.InvoiceLineItems.AddRange(invoice.LineItems);
+    await _context.SaveChangesAsync();
+}
+catch (Exception dbEx)
+{
+    // Rollback strategy or error handling
+    throw new Exception($"Invoice was saved to Xero but failed to save in local DB. InvoiceID: {invoiceId}, Error: {dbEx.Message}");
+}
+*/
+            return "Data Added to Xero";
         }
 
 
-        public async Task<IActionResult> DeleteInvoice(string invoiceId)
-        {
-            // Step 1: Fetch access token and tenantId from the database
-            var tokenDetails = await _db.QuickBooksTokens
-                .Where(x => x.Company == "Xero")  // Filter by Xero company
-                .OrderByDescending(x => x.CreatedAtUtc)
-                .FirstOrDefaultAsync();
+public async Task<IActionResult> DeleteInvoice(string invoiceId)
+{
+// Step 1: Fetch access token and tenantId from the database
+var tokenDetails = await _db.QuickBooksTokens
+    .Where(x => x.Company == "Xero")  // Filter by Xero company
+    .OrderByDescending(x => x.CreatedAtUtc)
+    .FirstOrDefaultAsync();
 
-            if (tokenDetails == null)
-            {
-                return new NotFoundObjectResult("Token not found.");
-            }
+if (tokenDetails == null)
+{
+    return new NotFoundObjectResult("Token not found.");
+}
 
-            string accessToken = tokenDetails.AccessToken;
-            string tenantId = tokenDetails.TenantId;
+string accessToken = tokenDetails.AccessToken;
+string tenantId = tokenDetails.TenantId;
 
-            // Step 2: Retrieve invoice details from Xero to check its current status
-            var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-            request.Headers.Add("Xero-tenant-id", tenantId);
+// Step 2: Retrieve invoice details from Xero to check its current status
+var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
+request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+request.Headers.Add("Xero-tenant-id", tenantId);
 
-            var response = await _httpClient.SendAsync(request);
-            if (!response.IsSuccessStatusCode)
-            {
-                return new NotFoundObjectResult("Invoice not found in Xero.");
-            }
+var response = await _httpClient.SendAsync(request);
+if (!response.IsSuccessStatusCode)
+{
+    return new NotFoundObjectResult("Invoice not found in Xero.");
+}
 
-            var responseContent = await response.Content.ReadAsStringAsync();
-            var xeroInvoiceResponse = JsonSerializer.Deserialize<XeroInvoiceResponse>(responseContent, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-            var xeroInvoice = xeroInvoiceResponse?.Invoices?.FirstOrDefault();
+var responseContent = await response.Content.ReadAsStringAsync();
+var xeroInvoiceResponse = JsonSerializer.Deserialize<XeroInvoiceResponse>(responseContent, new JsonSerializerOptions
+{
+    PropertyNameCaseInsensitive = true
+});
+var xeroInvoice = xeroInvoiceResponse?.Invoices?.FirstOrDefault();
 
-            if (xeroInvoice == null)
-            {
-                return new NotFoundObjectResult("Invoice not found in Xero response.");
-            }
+if (xeroInvoice == null)
+{
+    return new NotFoundObjectResult("Invoice not found in Xero response.");
+}
 
-            // Step 3: Check if the invoice status is 'DRAFT'
-            if (!xeroInvoice.Status.Equals("DRAFT", StringComparison.OrdinalIgnoreCase))
-            {
-                return new BadRequestObjectResult("Invoice status must be 'DRAFT' to delete.");
-            }
+// Step 3: Check if the invoice status is 'DRAFT'
+if (!xeroInvoice.Status.Equals("DRAFT", StringComparison.OrdinalIgnoreCase))
+{
+    return new BadRequestObjectResult("Invoice status must be 'DRAFT' to delete.");
+}
 
-            // Step 4: Fetch local invoice where QuickBooksId == invoiceId
-            var localInvoice = await _context.Invoices
-                .FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
+// Step 4: Fetch local invoice where QuickBooksId == invoiceId
+var localInvoice = await _context.Invoices
+    .FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
 
-            if (localInvoice == null)
-            {
-                return new NotFoundObjectResult("Invoice not found in local database.");
-            }
+if (localInvoice == null)
+{
+    return new NotFoundObjectResult("Invoice not found in local database.");
+}
 
-            var invoiceType = localInvoice.XeroInvoiceType; // "ACCREC" or "ACCPAY"
+var invoiceType = localInvoice.XeroInvoiceType; // "ACCREC" or "ACCPAY"
 
-            // Step 5: Construct the payload for deletion
-            var payload = new
-            {
-                Invoices = new[]
-                {
-            new
-            {
-                InvoiceID = invoiceId,
-                Type = invoiceType,
-                Status = "DELETED"
-            }
-        }
-            };
+// Step 5: Construct the payload for deletion
+var payload = new
+{
+    Invoices = new[]
+    {
+new
+{
+    InvoiceID = invoiceId,
+    Type = invoiceType,
+    Status = "DELETED"
+}
+}
+};
 
-            var jsonPayload = JsonSerializer.Serialize(payload);
+var jsonPayload = JsonSerializer.Serialize(payload);
 
-            var deleteRequest = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices")
-            {
-                Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
-            };
-            deleteRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-            deleteRequest.Headers.Add("Xero-tenant-id", tenantId);
+var deleteRequest = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices")
+{
+    Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
+};
+deleteRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+deleteRequest.Headers.Add("Xero-tenant-id", tenantId);
 
-            var deleteResponse = await _httpClient.SendAsync(deleteRequest);
-            if (!deleteResponse.IsSuccessStatusCode)
-            {
-                return new StatusCodeResult(500); // Internal Server Error
-            }
+var deleteResponse = await _httpClient.SendAsync(deleteRequest);
+if (!deleteResponse.IsSuccessStatusCode)
+{
+    return new StatusCodeResult(500); // Internal Server Error
+}
 
-            // Step 6: Update the invoice status in the local database
-            localInvoice.XeroStatus = "DELETED";
-            await _context.SaveChangesAsync();
+// Step 6: Update the invoice status in the local database
+localInvoice.XeroStatus = "DELETED";
+await _context.SaveChangesAsync();
 
-            return new OkObjectResult("Invoice deleted successfully.");
-        }
-
-
-        public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
-        {
-            // Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
-            var existingInvoice = await _context.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
-
-            if (existingInvoice == null)
-                throw new Exception($"No local invoice found with InvoiceID (QuickBooksId): {invoiceId}");
-
-            // Step 2: Ensure the status is "DRAFT" before proceeding
-            if (!string.Equals(existingInvoice.XeroStatus, "DRAFT", StringComparison.OrdinalIgnoreCase))
-                throw new Exception("Invoice cannot be updated because its status is not 'DRAFT'.");
-
-            // Step 3: Build the payload for Xero invoice update
-            var payload = new
-            {
-                Invoices = new[]
-                {
-            new
-            {
-                InvoiceID = invoiceId, // InvoiceID from the request body
-                Type = existingInvoice.XeroInvoiceType, // Existing invoice type from the database
-                //Contact = new { ContactID = existingInvoice.XeroContactId }, // ContactID (already stored in DB)
-                LineItems = dto.LineItems.Select(item => new
-                {
-                    item.Description,
-                    item.Quantity,
-                    item.UnitAmount,
-                    item.AccountCode,
-                    item.TaxType,
-                    item.LineAmount
-                }).ToList(),
-                Date = dto.Date.ToString("yyyy-MM-dd"),
-                DueDate = dto.DueDate.ToString("yyyy-MM-dd"),
-                Reference = dto.Reference,
-                Status = dto.Status ?? existingInvoice.XeroStatus // Preserve existing status unless specified
-            }
-        }
-            };
-
-            // Step 4: Send the update request to Xero API
-            var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            request.Headers.Add("xero-tenant-id", tenantId);
-            request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.SendAsync(request);
-
-            // Step 5: Check if the response is successful
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Xero invoice update failed: {error}");
-            }
-
-            // Step 6: Optionally, parse the updated invoice data (if needed)
-            var responseBody = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(responseBody);
-            var updatedInvoice = doc.RootElement.GetProperty("Invoices")[0];
-            var updatedInvoiceId = updatedInvoice.GetProperty("InvoiceID").GetString();
-
-            // Optional: You can update local database fields if needed based on the response
-
-            return updatedInvoiceId ?? invoiceId;
-        }
+return new OkObjectResult("Invoice deleted successfully.");
+}
 
 
+public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
+{
+// Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
+var existingInvoice = await _context.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
+
+if (existingInvoice == null)
+    throw new Exception($"No local invoice found with InvoiceID (QuickBooksId): {invoiceId}");
+
+// Step 2: Ensure the status is "DRAFT" before proceeding
+if (!string.Equals(existingInvoice.XeroStatus, "DRAFT", StringComparison.OrdinalIgnoreCase))
+    throw new Exception("Invoice cannot be updated because its status is not 'DRAFT'.");
+
+// Step 3: Build the payload for Xero invoice update
+var payload = new
+{
+    Invoices = new[]
+    {
+new
+{
+    InvoiceID = invoiceId, // InvoiceID from the request body
+    Type = existingInvoice.XeroInvoiceType, // Existing invoice type from the database
+    //Contact = new { ContactID = existingInvoice.XeroContactId }, // ContactID (already stored in DB)
+    LineItems = dto.LineItems.Select(item => new
+    {
+        item.Description,
+        item.Quantity,
+        item.UnitAmount,
+        item.AccountCode,
+        item.TaxType,
+        item.LineAmount
+    }).ToList(),
+    Date = dto.Date.ToString("yyyy-MM-dd"),
+    DueDate = dto.DueDate.ToString("yyyy-MM-dd"),
+    Reference = dto.Reference,
+    Status = dto.Status ?? existingInvoice.XeroStatus // Preserve existing status unless specified
+}
+}
+};
+
+// Step 4: Send the update request to Xero API
+var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
+request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+request.Headers.Add("xero-tenant-id", tenantId);
+request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+var response = await _httpClient.SendAsync(request);
+
+// Step 5: Check if the response is successful
+if (!response.IsSuccessStatusCode)
+{
+    var error = await response.Content.ReadAsStringAsync();
+    throw new Exception($"Xero invoice update failed: {error}");
+}
+
+// Step 6: Optionally, parse the updated invoice data (if needed)
+var responseBody = await response.Content.ReadAsStringAsync();
+using var doc = JsonDocument.Parse(responseBody);
+var updatedInvoice = doc.RootElement.GetProperty("Invoices")[0];
+var updatedInvoiceId = updatedInvoice.GetProperty("InvoiceID").GetString();
+
+// Optional: You can update local database fields if needed based on the response
+
+return updatedInvoiceId ?? invoiceId;
+}
 
 
-    }
+
+
+}
 }

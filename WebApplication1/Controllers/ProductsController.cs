@@ -89,6 +89,9 @@ namespace WebApplication1.Controllers
         }
 
 
+
+
+
         [HttpGet("fetch-items-from-quickbooks")]
         public async Task<IActionResult> FetchItemsFromQuickBooks()
         {
@@ -674,7 +677,40 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet("get-xero-products")]
+        public async Task<IActionResult> GetXeroProducts()
+        {
+            try
+            {
+                var products = await _dbContext.Products
+                    .Where(p => p.Platform == "Xero")
+                    .OrderBy(p => p.Name)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        Name = p.Name ?? "",
+                        Description = p.Description ?? "",
+                        Price = p.Price.ToString(),
+                        Type = p.Type.ToString(),
+                        Platform = p.Platform ?? "",
+                        QuickBooksItemId = p.QuickBooksItemId.ToString() ?? " ",
+                        isActive = p.IsActive,
+                        code = p.Code,
+                        PurchaseCOGSAccountCode = p.PurchaseCOGSAccountCode,
+                        PurchaseUnitPrice = p.PurchaseUnitPrice,
+                        SalesUnitPrice = p.SalesUnitPrice,
+                        SalesAccountCode = p.SalesAccountCode
+                    })
+                    .ToListAsync();
 
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving Xero products.");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
 
         #endregion
 

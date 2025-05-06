@@ -836,6 +836,18 @@
         }
       }
     },
+    "/api/Products/get-xero-products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/QuickBooks/fetch-from-db": {
       "get": {
         "tags": [

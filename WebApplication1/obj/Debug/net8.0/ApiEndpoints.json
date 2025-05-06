@@ -491,6 +491,16 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.ProductsController",
+    "Method": "GetXeroProducts",
+    "RelativePath": "api/Products/get-xero-products",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "WebApplication1.Controllers.ProductsController",
     "Method": "GetProducts",
     "RelativePath": "api/Products/xero-get-all-products",
     "HttpMethod": "GET",
