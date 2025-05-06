@@ -148,38 +148,58 @@ namespace WebApplication1.Controllers
         }
 
 
-        [HttpGet("invoices")]
-        public async Task<IActionResult> GetInvoices()
+
+        [HttpGet("get-invoices")]
+        public async Task<IActionResult> GetInvoices(
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 10,
+    [FromQuery] string? searchTerm = null,
+    [FromQuery] string? platform = null)
         {
             try
             {
-                var invoices = await _dbContext.Invoices
-                    .Select(i => new
-                    {
-                        i.QuickBooksId,
-                        i.DocNumber,
-                        i.CustomerName,
-                        i.TxnDate,
-                        i.DueDate,
-                        i.Subtotal,
-                        i.TotalAmt,
-                        i.Balance,
-                        i.CustomerEmail,
-                        i.Store,
-                        i.CustomerMemo,
-                        i.EmailStatus,
-                        i.SyncToken
-                    })
+                var query = _dbContext.Invoices.AsQueryable();
+
+                // 🔍 Filter by Platform (e.g., "QuickBooks", "Xero")
+                if (!string.IsNullOrEmpty(platform))
+                {
+                    query = query.Where(i => i.Platform.ToLower() == platform.ToLower());
+                }
+
+                // 🔍 Global search across relevant fields
+                if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    query = query.Where(i =>
+                        i.CustomerName.Contains(searchTerm));
+
+                }
+
+                // 📊 Total records before pagination
+                var totalRecords = await query.CountAsync();
+
+                // 📥 Apply pagination
+                var invoices = await query
+                    .OrderByDescending(i => i.TxnDate) // or any sorting preference
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
-                return Ok(invoices);
+                // 📦 Response with metadata
+                return Ok(new
+                {
+                    TotalRecords = totalRecords,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    Invoices = invoices
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching invoices from the database.");
+                _logger.LogError(ex, "Error fetching invoices.");
                 return StatusCode(500, "An error occurred while fetching invoices.");
             }
         }
+
 
 
 

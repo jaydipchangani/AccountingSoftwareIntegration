@@ -262,11 +262,32 @@
   {
     "ContainingType": "WebApplication1.Controllers.InvoiceContoller",
     "Method": "GetInvoices",
-    "RelativePath": "api/InvoiceContoller/invoices",
+    "RelativePath": "api/InvoiceContoller/get-invoices",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
-    "Parameters": [],
+    "Parameters": [
+      {
+        "Name": "pageNumber",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "searchTerm",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "platform",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
     "ReturnTypes": []
   },
   {
