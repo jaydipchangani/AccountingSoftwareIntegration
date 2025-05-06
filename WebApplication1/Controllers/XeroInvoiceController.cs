@@ -59,5 +59,28 @@ namespace WebApplication1.Controllers
             var result = await _xeroInvoiceService.DeleteInvoice(invoiceId);
             return result;
         }
+
+
+        [HttpPost("update-invoice/{invoiceId}")]
+        public async Task<IActionResult> UpdateInvoice(string invoiceId, [FromBody] XeroInvoiceUpdateDto dto)
+        {
+            var auth = await _context.QuickBooksTokens
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (auth == null)
+                return BadRequest("No Xero credentials found.");
+
+            try
+            {
+                var updatedInvoiceId = await _xeroInvoiceService.UpdateInvoiceInXeroAsync(invoiceId, dto, auth.AccessToken, auth.TenantId);
+                return Ok(new { message = "Invoice updated", invoiceId = updatedInvoiceId });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
     }
 }

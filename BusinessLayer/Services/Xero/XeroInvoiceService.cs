@@ -126,31 +126,35 @@ namespace BusinessLayer.Services.Xero
 
         public async Task<string> AddInvoiceToXeroAndDbAsync(XeroInvoiceCreateDto dto, string accessToken, string tenantId)
         {
+            string invoiceId = string.Empty;
+
+            // Step 1: Construct payload
             var payload = new
             {
                 Invoices = new[]
                 {
-                    new
-                    {
-                        Type = "ACCREC",
-                        Contact = new { ContactID = dto.ContactId },
-                        LineItems = dto.LineItems.Select(item => new
-                        {
-                            item.Description,
-                            item.Quantity,
-                            item.UnitAmount,
-                            item.AccountCode,
-                            item.TaxType,
-                            item.LineAmount
-                        }).ToList(),
-                        Date = dto.Date.ToString("yyyy-MM-dd"),
-                        DueDate = dto.DueDate.ToString("yyyy-MM-dd"),
-                        Reference = dto.Reference,
-                        Status = "DRAFT"
-                    }
-                }
+            new
+            {
+                Type = "ACCREC",
+                Contact = new { ContactID = dto.ContactId },
+                LineItems = dto.LineItems.Select(item => new
+                {
+                    item.Description,
+                    item.Quantity,
+                    item.UnitAmount,
+                    item.AccountCode,
+                    item.TaxType,
+                    item.LineAmount
+                }).ToList(),
+                Date = dto.Date.ToString("yyyy-MM-dd"),
+                DueDate = dto.DueDate.ToString("yyyy-MM-dd"),
+                Reference = dto.Reference,
+                Status = "DRAFT"
+            }
+        }
             };
 
+            // Step 2: Send request to Xero
             var request = new HttpRequestMessage(HttpMethod.Put, "https://api.xero.com/api.xro/2.0/Invoices");
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
             request.Headers.Add("xero-tenant-id", tenantId);
@@ -160,23 +164,25 @@ namespace BusinessLayer.Services.Xero
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Failed to add invoice to Xero: {error}");
+                throw new Exception($"Xero Sync Failed: {error}");
             }
 
+            // Step 3: Read response from Xero
             var responseBody = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(responseBody);
             var xeroInvoice = doc.RootElement.GetProperty("Invoices")[0];
 
-            // Save to DB
+            invoiceId = xeroInvoice.GetProperty("InvoiceID").GetString() ?? "";
+
+            // Step 4: Prepare local invoice entity
             var invoice = new Invoice
             {
-                QuickBooksId = xeroInvoice.GetProperty("InvoiceID").GetString() ?? "",
+                QuickBooksId = invoiceId,
                 DocNumber = xeroInvoice.GetProperty("InvoiceNumber").GetString() ?? "",
                 CustomerId = xeroInvoice.GetProperty("Contact").GetProperty("ContactID").GetString() ?? "",
                 CustomerName = xeroInvoice.GetProperty("Contact").GetProperty("Name").GetString() ?? "",
                 TxnDate = xeroInvoice.GetProperty("Date").GetDateTime(),
                 DueDate = xeroInvoice.GetProperty("DueDate").GetDateTime(),
-                //CustomerMemo = dto.Reference,
                 Subtotal = xeroInvoice.TryGetProperty("SubTotal", out var subtotalEl) ? subtotalEl.GetDecimal() : 0,
                 TotalAmt = xeroInvoice.GetProperty("Total").GetDecimal(),
                 Balance = xeroInvoice.GetProperty("AmountDue").GetDecimal(),
@@ -188,49 +194,46 @@ namespace BusinessLayer.Services.Xero
             {
                 invoice.LineItems.Add(new InvoiceLineItem
                 {
-                    ProductId = lineItem.GetProperty("ProductId").GetString() ?? "UnknownProduct", // Ensure this is not empty
-                    ProductName = lineItem.GetProperty("ProductName").GetString() ?? "UnknownProductName", // Ensure this is not empty
+                    ProductId = lineItem.GetProperty("ProductId").GetString() ?? "UnknownProduct",
+                    ProductName = lineItem.GetProperty("ProductName").GetString() ?? "UnknownProductName",
                     Description = lineItem.GetProperty("Description").GetString() ?? "",
                     Quantity = lineItem.GetProperty("Quantity").GetDecimal(),
                     Rate = lineItem.GetProperty("UnitAmount").GetDecimal(),
                     Amount = lineItem.GetProperty("LineAmount").GetDecimal(),
-                    LineNum = 1, // You might need to update this to increment depending on your scenario
+                    LineNum = 1,
                     DetailType = "SalesItemLineDetail",
-                    ItemRef = lineItem.GetProperty("ItemRef").GetString() ?? "UnknownItemRef", // Ensure this is not empty
-                    ItemName = lineItem.GetProperty("ItemName").GetString() ?? "UnknownItemName", // Ensure this is not empty
+                    ItemRef = lineItem.GetProperty("ItemRef").GetString() ?? "UnknownItemRef",
+                    ItemName = lineItem.GetProperty("ItemName").GetString() ?? "UnknownItemName",
                     XeroLineItemId = lineItem.GetProperty("LineItemID").GetString() ?? "",
                     XeroAccountCode = lineItem.GetProperty("AccountCode").GetString() ?? "",
-                    XeroAccountId = "", // Xero does not return this, ensure it's either set or left empty
+                    XeroAccountId = "",
                     XeroTaxType = lineItem.GetProperty("TaxType").GetString() ?? "",
                     XeroTaxAmount = lineItem.GetProperty("TaxAmount").GetDecimal(),
-                    XeroDiscountRate = 0, // Set to 0 if you don't need to track discount rate
+                    XeroDiscountRate = 0,
                     PlatformLineItem = "Xero"
                 });
             }
 
-
+            // Step 5: Save to local DB
             try
             {
-                Console.WriteLine("Attempting to save invoice data...");
+                Console.WriteLine("Saving invoice to local database...");
+
                 _context.Invoices.Add(invoice);
                 await _context.SaveChangesAsync();
 
-                // Now save the LineItems
-                foreach (var lineItem in invoice.LineItems)
-                {
-                    _context.InvoiceLineItems.Add(lineItem);
-                }
+                _context.InvoiceLineItems.AddRange(invoice.LineItems);
                 await _context.SaveChangesAsync();
             }
-            catch (Exception ex)
+            catch (Exception dbEx)
             {
-                Console.WriteLine("DB Save Error: " + ex.Message);
-                throw;
+                // Rollback strategy or error handling
+                throw new Exception($"Invoice was saved to Xero but failed to save in local DB. InvoiceID: {invoiceId}, Error: {dbEx.Message}");
             }
-
 
             return invoice.QuickBooksId;
         }
+
 
         public async Task<IActionResult> DeleteInvoice(string invoiceId)
         {
@@ -322,6 +325,72 @@ namespace BusinessLayer.Services.Xero
             await _context.SaveChangesAsync();
 
             return new OkObjectResult("Invoice deleted successfully.");
+        }
+
+
+        public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
+        {
+            // Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
+            var existingInvoice = await _context.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
+
+            if (existingInvoice == null)
+                throw new Exception($"No local invoice found with InvoiceID (QuickBooksId): {invoiceId}");
+
+            // Step 2: Ensure the status is "DRAFT" before proceeding
+            if (!string.Equals(existingInvoice.XeroStatus, "DRAFT", StringComparison.OrdinalIgnoreCase))
+                throw new Exception("Invoice cannot be updated because its status is not 'DRAFT'.");
+
+            // Step 3: Build the payload for Xero invoice update
+            var payload = new
+            {
+                Invoices = new[]
+                {
+            new
+            {
+                InvoiceID = invoiceId, // InvoiceID from the request body
+                Type = existingInvoice.XeroInvoiceType, // Existing invoice type from the database
+                //Contact = new { ContactID = existingInvoice.XeroContactId }, // ContactID (already stored in DB)
+                LineItems = dto.LineItems.Select(item => new
+                {
+                    item.Description,
+                    item.Quantity,
+                    item.UnitAmount,
+                    item.AccountCode,
+                    item.TaxType,
+                    item.LineAmount
+                }).ToList(),
+                Date = dto.Date.ToString("yyyy-MM-dd"),
+                DueDate = dto.DueDate.ToString("yyyy-MM-dd"),
+                Reference = dto.Reference,
+                Status = dto.Status ?? existingInvoice.XeroStatus // Preserve existing status unless specified
+            }
+        }
+            };
+
+            // Step 4: Send the update request to Xero API
+            var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            request.Headers.Add("xero-tenant-id", tenantId);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.SendAsync(request);
+
+            // Step 5: Check if the response is successful
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Xero invoice update failed: {error}");
+            }
+
+            // Step 6: Optionally, parse the updated invoice data (if needed)
+            var responseBody = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(responseBody);
+            var updatedInvoice = doc.RootElement.GetProperty("Invoices")[0];
+            var updatedInvoiceId = updatedInvoice.GetProperty("InvoiceID").GetString();
+
+            // Optional: You can update local database fields if needed based on the response
+
+            return updatedInvoiceId ?? invoiceId;
         }
 
 
