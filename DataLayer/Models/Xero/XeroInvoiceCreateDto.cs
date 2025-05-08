@@ -12,6 +12,8 @@ namespace DataLayer.Models.Xero
         public string Reference { get; set; } = string.Empty;
         public DateTime Date { get; set; }
         public DateTime DueDate { get; set; }
+
+        public String Type { get; set; }
         public List<XeroLineItemDto> LineItems { get; set; } = new();
     }
 

@@ -34,8 +34,14 @@ namespace BusinessLayer.Services.Xero
 
         }
 
-        public async Task<int> FetchAndStoreInvoicesAsync()
+        public async Task<int> FetchAndStoreInvoicesAsync(string? type = null) // null, "ACCPAY", or "ACCREC"
+
         {
+            if (type != null && type != "ACCPAY" && type != "ACCREC")
+                throw new ArgumentException("Invalid invoice type. Allowed values are: ACCPAY, ACCREC, or null.");
+
+
+
             var auth = await _db.QuickBooksTokens
                 .Where(x => x.Company == "Xero")
                 .OrderByDescending(x => x.CreatedAtUtc)
@@ -73,7 +79,15 @@ namespace BusinessLayer.Services.Xero
 
             int count = 0;
 
-            foreach (var invoiceJson in invoicesJson)
+            var filteredInvoices = type == null
+    ? invoicesJson
+    : invoicesJson.Where(i => i["Type"]?.ToString() == type);
+
+
+
+
+            foreach (var invoiceJson in filteredInvoices)
+
             {
                 var invoiceId = invoiceJson["InvoiceID"]?.ToString();
                 var existing = await _db.Invoices.FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
@@ -170,7 +184,7 @@ namespace BusinessLayer.Services.Xero
                 {
             new
             {
-                Type = "ACCREC",
+                Type = dto.Type,
                 Contact = new { ContactID = dto.ContactId },
                 LineItems = dto.LineItems.Select(item => new
                 {
@@ -462,6 +476,95 @@ return updatedInvoiceId ?? invoiceId;
             // Step 4: Return raw JSON
             return await response.Content.ReadAsStringAsync();
         }
+
+
+        /*
+        public async Task<int> FetchAndStoreInvoicesAsync()
+        {
+            var auth = await _db.QuickBooksTokens
+                .Where(x => x.Company == "Xero")
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .FirstOrDefaultAsync();
+
+            if (auth == null)
+                throw new Exception("Xero auth details not found.");
+
+            // Prepare HTTP client
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+            client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            // Always fetch page 1 invoices
+            var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices?page=1");
+
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            var doc = JObject.Parse(json);
+            var invoicesJson = doc["Invoices"];
+
+            int count = 0;
+
+            foreach (var invoiceJson in invoicesJson)
+            {
+                var invoiceId = invoiceJson["InvoiceID"]?.ToString();
+                var existing = await _db.Invoices.FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
+                if (existing != null) continue;
+
+                var invoice = new Invoice
+                {
+                    QuickBooksId = invoiceId,
+                    CustomerName = invoiceJson["Contact"]?["Name"]?.ToString() ?? string.Empty,
+                    CustomerEmail = invoiceJson["Contact"]?["EmailAddress"]?.ToString() ?? string.Empty,
+                    DocNumber = invoiceJson["InvoiceNumber"]?.ToString() ?? string.Empty,
+                    CustomerMemo = invoiceJson["Reference"]?.ToString() ?? string.Empty,
+                    TxnDate = TryGetDateTime(invoiceJson, "Date"),
+                    DueDate = TryGetDateTime(invoiceJson, "DueDate"),
+                    Subtotal = invoiceJson["SubTotal"]?.ToObject<decimal>() ?? 0,
+                    TotalAmt = invoiceJson["Total"]?.ToObject<decimal>() ?? 0,
+                    Balance = invoiceJson["AmountDue"]?.ToObject<decimal>() ?? 0,
+                    XeroInvoiceType = invoiceJson["Type"]?.ToString() ?? string.Empty,
+                    XeroStatus = invoiceJson["Status"]?.ToString() ?? string.Empty,
+                    XeroBrandingThemeID = invoiceJson["BrandingThemeID"]?.ToString() ?? string.Empty,
+                    XeroCurrencyCode = invoiceJson["CurrencyCode"]?.ToString() ?? string.Empty,
+                    XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1,
+                    XeroIsDiscounted = invoiceJson["IsDiscounted"]?.ToObject<bool>() ?? false,
+                    XeroLineAmountTypes = invoiceJson["LineAmountTypes"]?.ToString() ?? string.Empty,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    Platform = "Xero",
+                };
+
+                foreach (var lineJson in invoiceJson["LineItems"])
+                {
+                    invoice.LineItems.Add(new InvoiceLineItem
+                    {
+                        Description = lineJson["Description"]?.ToString() ?? string.Empty,
+                        Quantity = lineJson["Quantity"]?.ToObject<decimal>() ?? 0,
+                        Rate = lineJson["UnitAmount"]?.ToObject<decimal>() ?? 0,
+                        Amount = lineJson["LineAmount"]?.ToObject<decimal>() ?? 0,
+                        XeroLineItemId = lineJson["LineItemID"]?.ToString() ?? string.Empty,
+                        XeroAccountCode = lineJson["AccountCode"]?.ToString() ?? string.Empty,
+                        XeroTaxType = lineJson["TaxType"]?.ToString() ?? string.Empty,
+                        XeroTaxAmount = lineJson["TaxAmount"]?.ToObject<decimal>() ?? 0,
+                        XeroDiscountRate = lineJson["DiscountRate"]?.ToObject<decimal>() ?? 0,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
+
+                _db.Invoices.Add(invoice);
+                count++;
+            }
+
+            await _db.SaveChangesAsync();
+
+            return count;
+        }
+
+        */
+
 
     }
 }

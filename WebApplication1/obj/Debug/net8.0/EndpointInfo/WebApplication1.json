@@ -1271,6 +1271,15 @@
         "tags": [
           "XeroInvoice"
         ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -2008,6 +2017,10 @@
           "dueDate": {
             "type": "string",
             "format": "date-time"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
           },
           "lineItems": {
             "type": "array",

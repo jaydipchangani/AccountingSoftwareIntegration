@@ -22,9 +22,9 @@ namespace WebApplication1.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> FetchAndStoreXeroInvoices()
+        public async Task<IActionResult> FetchAndStoreXeroInvoices([FromQuery] string? type)
         {
-            var result = await _xeroInvoiceService.FetchAndStoreInvoicesAsync();
+            var result = await _xeroInvoiceService.FetchAndStoreInvoicesAsync(type);
             return Ok(new { message = "Invoices synced successfully", count = result });
         }
 
