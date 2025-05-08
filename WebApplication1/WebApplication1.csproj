@@ -28,6 +28,8 @@
   <ItemGroup>
     <ProjectReference Include="..\BusinessLayer\BusinessLayer.csproj" />
     <ProjectReference Include="..\DataLayer\DataLayer.csproj" />
+    <ProjectReference Include="..\QBO\QBO.csproj" />
+    <ProjectReference Include="..\XeroLayer\XeroLayer.csproj" />
   </ItemGroup>
 
 </Project>

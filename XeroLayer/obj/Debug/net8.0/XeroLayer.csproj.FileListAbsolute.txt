@@ -1,0 +1,16 @@
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\bin\Debug\net8.0\XeroLayer.deps.json
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\bin\Debug\net8.0\XeroLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\bin\Debug\net8.0\XeroLayer.pdb
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\bin\Debug\net8.0\DataLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\bin\Debug\net8.0\DataLayer.pdb
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.csproj.AssemblyReference.cache
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.GeneratedMSBuildEditorConfig.editorconfig
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.AssemblyInfoInputs.cache
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.AssemblyInfo.cs
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.csproj.CoreCompileInputs.cache
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.sourcelink.json
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.csproj.Up2Date
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\refint\XeroLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\XeroLayer.pdb
+C:\AccountingIntegration\Backend\WebApplication1\XeroLayer\obj\Debug\net8.0\ref\XeroLayer.dll

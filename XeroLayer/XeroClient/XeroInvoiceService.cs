@@ -1,32 +1,35 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Linq;
+﻿using Microsoft.Extensions.DependencyInjection; // Required for CreateClient() extension
+
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using WebApplication1.Data;
-using BusinessLayer.Services.Xero;
-using Microsoft.EntityFrameworkCore;
-using DataLayer.Models.Xero;
-using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using DataLayer.Models;
-using Microsoft.EntityFrameworkCore;
+    using System.Net.Http.Headers;
+
+
+    using Newtonsoft.Json.Linq;
+
+    using System.Net.Http.Headers;
+    using System.Text;
+    using System.Text.Json;
+
+    using WebApplication1.Data;
+    using Microsoft.EntityFrameworkCore;
+    using DataLayer.Models.Xero;
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 
 
-namespace BusinessLayer.Services.Xero
+
+
+namespace XeroLayer.XeroClient
 {
-    public class XeroInvoiceService
+    public class XeroClient
     {
         private readonly ApplicationDbContext _db;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly HttpClient _httpClient;
 
 
-        public XeroInvoiceService(ApplicationDbContext db, IHttpClientFactory httpClientFactory, HttpClient httpClient)
+        public XeroClient(ApplicationDbContext db, IHttpClientFactory httpClientFactory, HttpClient httpClient)
         {
             _db = db;
             _httpClientFactory = httpClientFactory;
@@ -47,7 +50,7 @@ namespace BusinessLayer.Services.Xero
             if (auth == null)
                 throw new Exception("Xero auth details not found.");
 
-            var client = _httpClientFactory.CreateClient();
+            var client = _httpClientFactory.GetHttpClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
             client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

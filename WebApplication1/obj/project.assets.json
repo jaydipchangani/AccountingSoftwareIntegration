@@ -4273,6 +4273,35 @@
         "runtime": {
           "bin/placeholder/DataLayer.dll": {}
         }
+      },
+      "QBO/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "compile": {
+          "bin/placeholder/QBO.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/QBO.dll": {}
+        }
+      },
+      "XeroLayer/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "DataLayer": "1.0.0",
+          "Microsoft.AspNetCore.Mvc.Abstractions": "2.3.0",
+          "Microsoft.AspNetCore.Mvc.Core": "2.3.0",
+          "Microsoft.EntityFrameworkCore": "8.0.14",
+          "Microsoft.Extensions.Configuration": "9.0.4",
+          "Microsoft.Extensions.Options": "8.0.2",
+          "Microsoft.IdentityModel.Clients.ActiveDirectory": "5.3.0"
+        },
+        "compile": {
+          "bin/placeholder/XeroLayer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/XeroLayer.dll": {}
+        }
       }
     }
   },
@@ -12004,6 +12033,16 @@
       "type": "project",
       "path": "../DataLayer/DataLayer.csproj",
       "msbuildProject": "../DataLayer/DataLayer.csproj"
+    },
+    "QBO/1.0.0": {
+      "type": "project",
+      "path": "../QBO/QBO.csproj",
+      "msbuildProject": "../QBO/QBO.csproj"
+    },
+    "XeroLayer/1.0.0": {
+      "type": "project",
+      "path": "../XeroLayer/XeroLayer.csproj",
+      "msbuildProject": "../XeroLayer/XeroLayer.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -12018,7 +12057,9 @@
       "Microsoft.EntityFrameworkCore.Tools >= 8.0.14",
       "Microsoft.IdentityModel.Logging >= 8.8.0",
       "Newtonsoft.Json >= 13.0.3",
-      "Swashbuckle.AspNetCore >= 6.6.2"
+      "QBO >= 1.0.0",
+      "Swashbuckle.AspNetCore >= 6.6.2",
+      "XeroLayer >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -12059,6 +12100,12 @@
             },
             "C:\\AccountingIntegration\\Backend\\WebApplication1\\DataLayer\\DataLayer.csproj": {
               "projectPath": "C:\\AccountingIntegration\\Backend\\WebApplication1\\DataLayer\\DataLayer.csproj"
+            },
+            "C:\\AccountingIntegration\\Backend\\WebApplication1\\QBO\\QBO.csproj": {
+              "projectPath": "C:\\AccountingIntegration\\Backend\\WebApplication1\\QBO\\QBO.csproj"
+            },
+            "C:\\AccountingIntegration\\Backend\\WebApplication1\\XeroLayer\\XeroLayer.csproj": {
+              "projectPath": "C:\\AccountingIntegration\\Backend\\WebApplication1\\XeroLayer\\XeroLayer.csproj"
             }
           }
         }

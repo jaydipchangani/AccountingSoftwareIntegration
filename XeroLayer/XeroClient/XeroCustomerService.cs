@@ -16,7 +16,7 @@ using Newtonsoft.Json.Linq;
 using WebApplication1.Models.Xero;
 using Microsoft.Extensions.Options;
 
-namespace WebApplication1.Services
+namespace XeroLayer.XeroClient
 {
     public class XeroService
     {

@@ -1,13 +1,10 @@
-﻿using Microsoft.Extensions.Options;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text;
-using WebApplication1.Models.Xero;
-using WebApplication1.Models.Xero;
-using WebApplication1.Data;
-using WebApplication1.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using DataLayer.Models;
+using WebApplication1.Data;
+using WebApplication1.Models;
 
 public class XeroAuthService
 {

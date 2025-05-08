@@ -3,6 +3,7 @@ using WebApplication1.Services;
 using System.Threading.Tasks;
 using WebApplication1.Models;
 using WebApplication1.Models.Xero.WebApplication1.Dtos;
+using XeroLayer.XeroClient;
 
 namespace WebApplication1.Controllers
 {

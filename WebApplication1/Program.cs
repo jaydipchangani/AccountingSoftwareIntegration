@@ -5,10 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using WebApplication1.Services;
 using WebApplication1.Models.Xero;
-
-using BusinessLayer.Services.Xero;
 using Businesslayer.Services;
-
 using DataLayer.Models;
 
 
@@ -22,7 +19,7 @@ builder.Services.AddHttpClient<ProductService>();
 
 
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<XeroInvoiceService>();
+builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<VendorSyncService>();
 builder.Services.AddScoped<VendorService>();
@@ -34,7 +31,7 @@ builder.Services.AddScoped<XeroAuthService>();
 builder.Services.AddHttpClient<XeroAccountService>(); // registers with HttpClient
 builder.Services.AddScoped<XeroAccountService>();      // registers as a scoped service
 
-builder.Services.AddScoped<XeroService>();
+
 
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
