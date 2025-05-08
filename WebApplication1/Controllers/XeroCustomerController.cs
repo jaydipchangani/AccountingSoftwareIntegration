@@ -3,7 +3,8 @@ using WebApplication1.Services;
 using System.Threading.Tasks;
 using WebApplication1.Models;
 using WebApplication1.Models.Xero.WebApplication1.Dtos;
-using XeroLayer.XeroClient;
+
+using XeroLayer;
 
 namespace WebApplication1.Controllers
 {
@@ -11,9 +12,9 @@ namespace WebApplication1.Controllers
     [ApiController]
     public class XeroController : ControllerBase
     {
-        private readonly XeroService _xeroService;
+        private readonly XeroCustomerService _xeroService;
 
-        public XeroController(XeroService xeroService)
+        public XeroController(XeroCustomerService xeroService)
         {
             _xeroService = xeroService;
         }

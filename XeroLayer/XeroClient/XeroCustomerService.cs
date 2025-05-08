@@ -16,16 +16,16 @@ using Newtonsoft.Json.Linq;
 using WebApplication1.Models.Xero;
 using Microsoft.Extensions.Options;
 
-namespace XeroLayer.XeroClient
+namespace XeroLayer
 {
-    public class XeroService
+    public class XeroCustomerService
     {
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _context;
         private readonly HttpClient _httpClient;
         private readonly XeroApiOptions _xeroOptions;
 
-        public XeroService(IConfiguration configuration, ApplicationDbContext context, HttpClient httpClient, IOptions<XeroApiOptions> xeroOptions)
+        public XeroCustomerService(IConfiguration configuration, ApplicationDbContext context, HttpClient httpClient, IOptions<XeroApiOptions> xeroOptions)
         {
             _configuration = configuration;
             _context = context;

@@ -1,35 +1,28 @@
 ﻿using Microsoft.Extensions.DependencyInjection; // Required for CreateClient() extension
+using System.Net.Http.Headers;
 
+
+using Newtonsoft.Json.Linq;
+using System.Text;
+using System.Text.Json;
+
+using WebApplication1.Data;
+using Microsoft.EntityFrameworkCore;
+using DataLayer.Models.Xero;
+using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
-    using System.Net.Http.Headers;
-
-
-    using Newtonsoft.Json.Linq;
-
-    using System.Net.Http.Headers;
-    using System.Text;
-    using System.Text.Json;
-
-    using WebApplication1.Data;
-    using Microsoft.EntityFrameworkCore;
-    using DataLayer.Models.Xero;
-    using Microsoft.AspNetCore.Mvc;
-    using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Microsoft.Extensions.DependencyInjection;
 
 
 
-
-
-namespace XeroLayer.XeroClient
-{
-    public class XeroClient
+public class XeroInvoiceService
     {
         private readonly ApplicationDbContext _db;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly HttpClient _httpClient;
 
 
-        public XeroClient(ApplicationDbContext db, IHttpClientFactory httpClientFactory, HttpClient httpClient)
+        public XeroInvoiceService(ApplicationDbContext db, IHttpClientFactory httpClientFactory, HttpClient httpClient)
         {
             _db = db;
             _httpClientFactory = httpClientFactory;
@@ -50,8 +43,8 @@ namespace XeroLayer.XeroClient
             if (auth == null)
                 throw new Exception("Xero auth details not found.");
 
-            var client = _httpClientFactory.GetHttpClient();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
             client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
@@ -530,4 +523,4 @@ return updatedInvoiceId ?? invoiceId;
 
 
     }
-}
+

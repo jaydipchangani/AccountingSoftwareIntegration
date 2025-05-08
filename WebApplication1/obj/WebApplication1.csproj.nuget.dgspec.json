@@ -324,6 +324,10 @@
               "target": "Package",
               "version": "[8.0.14, )"
             },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[9.0.4, )"
+            },
             "Microsoft.IdentityModel.Logging": {
               "target": "Package",
               "version": "[8.8.0, )"
@@ -427,9 +431,13 @@
               "target": "Package",
               "version": "[9.0.4, )"
             },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[9.0.4, )"
+            },
             "Microsoft.Extensions.Options": {
               "target": "Package",
-              "version": "[8.0.2, )"
+              "version": "[9.0.4, )"
             },
             "Microsoft.IdentityModel.Clients.ActiveDirectory": {
               "target": "Package",

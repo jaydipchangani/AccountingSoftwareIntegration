@@ -3,7 +3,7 @@ using DataLayer.Models.Xero;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using XeroLayer;
-using XeroLayer.XeroClient;
+
 
 
 namespace WebApplication1.Controllers
@@ -12,10 +12,10 @@ namespace WebApplication1.Controllers
     [ApiController]
     public class XeroInvoiceController : ControllerBase
     {
-        private readonly XeroClient _xeroInvoiceService;
+        private readonly XeroInvoiceService _xeroInvoiceService;
         private readonly ApplicationDbContext _context;
 
-        public XeroInvoiceController(XeroClient xeroInvoiceService,ApplicationDbContext context)
+        public XeroInvoiceController(XeroInvoiceService xeroInvoiceService,ApplicationDbContext context)
         {
             _xeroInvoiceService = xeroInvoiceService;
             _context = context;

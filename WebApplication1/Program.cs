@@ -7,6 +7,7 @@ using WebApplication1.Services;
 using WebApplication1.Models.Xero;
 using Businesslayer.Services;
 using DataLayer.Models;
+using XeroLayer;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +20,8 @@ builder.Services.AddHttpClient<ProductService>();
 
 
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddHttpClient();
+
+builder.Services.AddScoped<XeroInvoiceService>();
 
 builder.Services.AddScoped<VendorSyncService>();
 builder.Services.AddScoped<VendorService>();
@@ -87,6 +89,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddHttpClient();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
