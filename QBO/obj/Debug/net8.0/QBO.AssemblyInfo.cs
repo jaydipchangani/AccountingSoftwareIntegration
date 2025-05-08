@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("QBO")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0075bc8a02abdf8f49b64be8c88e961d27324115")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+56b4faa6a8412db20e0220e28ef532feaeb69685")]
 [assembly: System.Reflection.AssemblyProductAttribute("QBO")]
 [assembly: System.Reflection.AssemblyTitleAttribute("QBO")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

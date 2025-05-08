@@ -18,6 +18,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddHttpClient<ProductService>();
 
+builder.Services.AddScoped<XeroCustomerService>();
 
 builder.Services.AddScoped<TokenService>();
 

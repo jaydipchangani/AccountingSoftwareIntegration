@@ -15,11 +15,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 
 
-public class XeroInvoiceService
-    {
+    public class XeroInvoiceService
+     {
         private readonly ApplicationDbContext _db;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly HttpClient _httpClient;
 
 
         public XeroInvoiceService(ApplicationDbContext db, IHttpClientFactory httpClientFactory, HttpClient httpClient)
@@ -31,93 +31,104 @@ public class XeroInvoiceService
         }
 
         public async Task<int> FetchAndStoreInvoicesAsync(string? type = null)
-        {
-            if (type != null && type != "ACCPAY" && type != "ACCREC")
-                throw new ArgumentException("Invalid invoice type. Allowed values are: ACCPAY, ACCREC, or null.");
+    {
+        if (type != null && type != "ACCPAY" && type != "ACCREC")
+            throw new ArgumentException("Invalid invoice type. Allowed values are: ACCPAY, ACCREC, or null.");
 
-            var auth = await _db.QuickBooksTokens
-                .Where(x => x.Company == "Xero")
-                .OrderByDescending(x => x.CreatedAtUtc)
-                .FirstOrDefaultAsync();
+        var auth = await _db.QuickBooksTokens
+            .Where(x => x.Company == "Xero")
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync();
 
-            if (auth == null)
-                throw new Exception("Xero auth details not found.");
+        if (auth == null)
+            throw new Exception("Xero auth details not found.");
 
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
-            client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices?page=1");
-            response.EnsureSuccessStatusCode();
+        var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices?page=1");
+        response.EnsureSuccessStatusCode();
 
-            var json = await response.Content.ReadAsStringAsync();
-            var doc = JObject.Parse(json);
-            var invoicesJson = doc["Invoices"];
-            int count = 0;
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JObject.Parse(json);
+        var invoicesJson = doc["Invoices"];
+        int count = 0;
 
-            var filteredInvoices = type == null
-                ? invoicesJson
-                : invoicesJson.Where(i => i["Type"]?.ToString() == type);
+        var existingXeroInvoices = await _db.Invoices
+            .Include(i => i.LineItems)
+            .Where(i => i.Platform == "Xero")
+            .ToListAsync();
 
-            foreach (var invoiceJson in filteredInvoices)
+        _db.InvoiceLineItems.RemoveRange(existingXeroInvoices.SelectMany(i => i.LineItems));
+        _db.Invoices.RemoveRange(existingXeroInvoices);
+        await _db.SaveChangesAsync();
+
+        var filteredInvoices = type == null
+            ? invoicesJson
+            : invoicesJson.Where(i => i["Type"]?.ToString() == type);
+
+        foreach (var invoiceJson in filteredInvoices)
+        {
+            var rawDocNumber = invoiceJson["InvoiceNumber"]?.ToString();
+            var docNumber = string.IsNullOrWhiteSpace(rawDocNumber) ? $"XERO-{Guid.NewGuid():N}" : rawDocNumber;
+
+            if (await _db.Invoices.AnyAsync(i => i.DocNumber == docNumber && i.Platform != "Xero"))
+                continue; // Avoid conflict if the same DocNumber exists from a different platform
+
+            var invoiceId = invoiceJson["InvoiceID"]?.ToString();
+
+            var invoice = new Invoice
             {
-                var invoiceId = invoiceJson["InvoiceID"]?.ToString();
-                var existing = await _db.Invoices.FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
-                if (existing != null) continue;
+                QuickBooksId = invoiceId,
+                CustomerName = invoiceJson["Contact"]?["Name"]?.ToString() ?? string.Empty,
+                CustomerEmail = invoiceJson["Contact"]?["EmailAddress"]?.ToString() ?? string.Empty,
+                DocNumber = docNumber,
+                CustomerMemo = invoiceJson["Reference"]?.ToString() ?? string.Empty,
+                TxnDate = TryGetDateTime(invoiceJson, "Date"),
+                DueDate = TryGetDateTime(invoiceJson, "DueDate"),
+                Subtotal = invoiceJson["SubTotal"]?.ToObject<decimal>() ?? 0,
+                TotalAmt = invoiceJson["Total"]?.ToObject<decimal>() ?? 0,
+                Balance = invoiceJson["AmountDue"]?.ToObject<decimal>() ?? 0,
+                XeroInvoiceType = invoiceJson["Type"]?.ToString() ?? string.Empty,
+                XeroStatus = invoiceJson["Status"]?.ToString() ?? string.Empty,
+                XeroBrandingThemeID = invoiceJson["BrandingThemeID"]?.ToString() ?? string.Empty,
+                XeroCurrencyCode = invoiceJson["CurrencyCode"]?.ToString() ?? string.Empty,
+                XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1,
+                XeroIsDiscounted = invoiceJson["IsDiscounted"]?.ToObject<bool>() ?? false,
+                XeroLineAmountTypes = invoiceJson["LineAmountTypes"]?.ToString() ?? string.Empty,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Platform = "Xero",
+            };
 
-                var invoice = new Invoice
+            foreach (var lineJson in invoiceJson["LineItems"])
+            {
+                invoice.LineItems.Add(new InvoiceLineItem
                 {
-                    QuickBooksId = invoiceId,
-                    CustomerName = invoiceJson["Contact"]?["Name"]?.ToString() ?? string.Empty,
-                    CustomerEmail = invoiceJson["Contact"]?["EmailAddress"]?.ToString() ?? string.Empty,
-                    DocNumber = invoiceJson["InvoiceNumber"]?.ToString(),
-                    CustomerMemo = invoiceJson["Reference"]?.ToString() ?? string.Empty,
-                    TxnDate = TryGetDateTime(invoiceJson, "Date"),
-                    DueDate = TryGetDateTime(invoiceJson, "DueDate"),
-                    Subtotal = invoiceJson["SubTotal"]?.ToObject<decimal>() ?? 0,
-                    TotalAmt = invoiceJson["Total"]?.ToObject<decimal>() ?? 0,
-                    Balance = invoiceJson["AmountDue"]?.ToObject<decimal>() ?? 0,
-                    XeroInvoiceType = invoiceJson["Type"]?.ToString() ?? string.Empty,
-                    XeroStatus = invoiceJson["Status"]?.ToString() ?? string.Empty,
-                    XeroBrandingThemeID = invoiceJson["BrandingThemeID"]?.ToString() ?? string.Empty,
-                    XeroCurrencyCode = invoiceJson["CurrencyCode"]?.ToString() ?? string.Empty,
-                    XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1,
-                    XeroIsDiscounted = invoiceJson["IsDiscounted"]?.ToObject<bool>() ?? false,
-                    XeroLineAmountTypes = invoiceJson["LineAmountTypes"]?.ToString() ?? string.Empty,
+                    Description = lineJson["Description"]?.ToString() ?? string.Empty,
+                    Quantity = lineJson["Quantity"]?.ToObject<decimal>() ?? 0,
+                    Rate = lineJson["UnitAmount"]?.ToObject<decimal>() ?? 0,
+                    Amount = lineJson["LineAmount"]?.ToObject<decimal>() ?? 0,
+                    XeroLineItemId = lineJson["LineItemID"]?.ToString() ?? string.Empty,
+                    XeroAccountCode = lineJson["AccountCode"]?.ToString() ?? string.Empty,
+                    XeroTaxType = lineJson["TaxType"]?.ToString() ?? string.Empty,
+                    XeroTaxAmount = lineJson["TaxAmount"]?.ToObject<decimal>() ?? 0,
+                    XeroDiscountRate = lineJson["DiscountRate"]?.ToObject<decimal>() ?? 0,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    Platform = "Xero",
-                };
-
-                foreach (var lineJson in invoiceJson["LineItems"])
-                {
-                    invoice.LineItems.Add(new InvoiceLineItem
-                    {
-                        Description = lineJson["Description"]?.ToString() ?? string.Empty,
-                        Quantity = lineJson["Quantity"]?.ToObject<decimal>() ?? 0,
-                        Rate = lineJson["UnitAmount"]?.ToObject<decimal>() ?? 0,
-                        Amount = lineJson["LineAmount"]?.ToObject<decimal>() ?? 0,
-                        XeroLineItemId = lineJson["LineItemID"]?.ToString() ?? string.Empty,
-                        XeroAccountCode = lineJson["AccountCode"]?.ToString() ?? string.Empty,
-                        XeroTaxType = lineJson["TaxType"]?.ToString() ?? string.Empty,
-                        XeroTaxAmount = lineJson["TaxAmount"]?.ToObject<decimal>() ?? 0,
-                        XeroDiscountRate = lineJson["DiscountRate"]?.ToObject<decimal>() ?? 0,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    });
-                }
-
-                _db.Invoices.Add(invoice);
-                count++;
+                    UpdatedAt = DateTime.UtcNow
+                });
             }
 
-            await _db.SaveChangesAsync();
-
-            return count;
+            _db.Invoices.Add(invoice);
+            count++;
         }
 
+        await _db.SaveChangesAsync();
 
+        return count;
+    }
 
         private DateTime TryGetDateTime(JToken jsonElement, string propertyName)
         {
@@ -159,7 +170,7 @@ public class XeroInvoiceService
         }
             };
 
-            // Step 2: Send request to Xero
+
             var request = new HttpRequestMessage(HttpMethod.Put, "https://api.xero.com/api.xro/2.0/Invoices");
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
             request.Headers.Add("xero-tenant-id", tenantId);
@@ -223,120 +234,100 @@ public class XeroInvoiceService
 
             // Step 5: Save to local DB
 
-try
-{
-    Console.WriteLine("Saving invoice to local database...");
+            try
+            {
+                Console.WriteLine("Saving invoice to local database...");
 
-    _context.Invoices.Add(invoice);
-    await _context.SaveChangesAsync();
+                _context.Invoices.Add(invoice);
+                await _context.SaveChangesAsync();
 
-    _context.InvoiceLineItems.AddRange(invoice.LineItems);
-    await _context.SaveChangesAsync();
-}
-catch (Exception dbEx)
-{
-    // Rollback strategy or error handling
-    throw new Exception($"Invoice was saved to Xero but failed to save in local DB. InvoiceID: {invoiceId}, Error: {dbEx.Message}");
-}
-*/
-            return "Data Added to Xero";
-        }
+                _context.InvoiceLineItems.AddRange(invoice.LineItems);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception dbEx)
+            {
+                // Rollback strategy or error handling
+                throw new Exception($"Invoice was saved to Xero but failed to save in local DB. InvoiceID: {invoiceId}, Error: {dbEx.Message}");
+            }
+            */
+                        return "Data Added to Xero";
+                    }
 
 
-        public async Task<IActionResult> DeleteInvoice(string invoiceId)
-{
-// Step 1: Fetch access token and tenantId from the database
-var tokenDetails = await _db.QuickBooksTokens
-    .Where(x => x.Company == "Xero")  // Filter by Xero company
-    .OrderByDescending(x => x.CreatedAtUtc)
-    .FirstOrDefaultAsync();
-
-if (tokenDetails == null)
-{
-    return new NotFoundObjectResult("Token not found.");
-}
-
-string accessToken = tokenDetails.AccessToken;
-string tenantId = tokenDetails.TenantId;
-
-// Step 2: Retrieve invoice details from Xero to check its current status
-var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
-request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-request.Headers.Add("Xero-tenant-id", tenantId);
-
-var response = await _httpClient.SendAsync(request);
-if (!response.IsSuccessStatusCode)
-{
-    return new NotFoundObjectResult("Invoice not found in Xero.");
-}
-
-var responseContent = await response.Content.ReadAsStringAsync();
-var xeroInvoiceResponse = JsonSerializer.Deserialize<XeroInvoiceResponse>(responseContent, new JsonSerializerOptions
-{
-    PropertyNameCaseInsensitive = true
-});
-var xeroInvoice = xeroInvoiceResponse?.Invoices?.FirstOrDefault();
-
-if (xeroInvoice == null)
-{
-    return new NotFoundObjectResult("Invoice not found in Xero response.");
-}
-
-// Step 3: Check if the invoice status is 'DRAFT'
-if (!xeroInvoice.Status.Equals("DRAFT", StringComparison.OrdinalIgnoreCase))
-{
-    return new BadRequestObjectResult("Invoice status must be 'DRAFT' to delete.");
-}
-
-// Step 4: Fetch local invoice where QuickBooksId == invoiceId
-var localInvoice = await _db.Invoices
-    .FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
-
-if (localInvoice == null)
-{
-    return new NotFoundObjectResult("Invoice not found in local database.");
-}
-
-var invoiceType = localInvoice.XeroInvoiceType; // "ACCREC" or "ACCPAY"
-
-// Step 5: Construct the payload for deletion
-var payload = new
-{
-    Invoices = new[]
+    public async Task<IActionResult> DeleteInvoice(string invoiceId)
     {
-new
-{
-    InvoiceID = invoiceId,
-    Type = invoiceType,
-    Status = "DELETED"
-}
-}
-};
+        var tokenDetails = await _db.QuickBooksTokens
+            .Where(x => x.Company == "Xero")
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync();
 
-var jsonPayload = JsonSerializer.Serialize(payload);
+        if (tokenDetails == null)
+            return StatusCode(401, "Token not found.");
 
-var deleteRequest = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices")
-{
-    Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
-};
-deleteRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-deleteRequest.Headers.Add("Xero-tenant-id", tenantId);
+        string accessToken = tokenDetails.AccessToken;
+        string tenantId = tokenDetails.TenantId;
 
-var deleteResponse = await _httpClient.SendAsync(deleteRequest);
-if (!deleteResponse.IsSuccessStatusCode)
-{
-    return new StatusCodeResult(500); // Internal Server Error
-}
+        var getRequest = new HttpRequestMessage(HttpMethod.Get, $"https://api.xero.com/api.xro/2.0/Invoices/{invoiceId}");
+        getRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        getRequest.Headers.Add("Xero-tenant-id", tenantId);
 
-// Step 6: Update the invoice status in the local database
-localInvoice.XeroStatus = "DELETED";
-await _db.SaveChangesAsync();
+        var getResponse = await _httpClient.SendAsync(getRequest);
+        if (!getResponse.IsSuccessStatusCode)
+            return StatusCode(404, "Invoice not found in Xero.");
 
-return new OkObjectResult("Invoice deleted successfully.");
-}
+        var responseContent = await getResponse.Content.ReadAsStringAsync();
+        var xeroInvoiceResponse = JsonSerializer.Deserialize<XeroInvoiceResponse>(responseContent, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        var xeroInvoice = xeroInvoiceResponse?.Invoices?.FirstOrDefault();
+        if (xeroInvoice == null)
+            return StatusCode(404, "Invoice not found in Xero response.");
+
+        if (!xeroInvoice.Status.Equals("DRAFT", StringComparison.OrdinalIgnoreCase))
+            return StatusCode(400, "Invoice status must be 'DRAFT' to delete.");
+
+        var localInvoice = await _db.Invoices.FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
+        if (localInvoice == null)
+            return StatusCode(404, "Invoice not found in local database.");
+
+        var payload = new
+        {
+            Invoices = new[]
+            {
+            new
+            {
+                InvoiceID = invoiceId,
+                Type = localInvoice.XeroInvoiceType,
+                Status = "DELETED"
+            }
+        }
+        };
+
+        var jsonPayload = JsonSerializer.Serialize(payload);
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Post, $"https://api.xero.com/api.xro/2.0/Invoices")
+        {
+            Content = new StringContent(jsonPayload, Encoding.UTF8, "application/json")
+        };
+        deleteRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        deleteRequest.Headers.Add("Xero-tenant-id", tenantId);
+
+        var deleteResponse = await _httpClient.SendAsync(deleteRequest);
+        if (!deleteResponse.IsSuccessStatusCode)
+            return StatusCode(500, "Failed to delete invoice in Xero.");
+
+        localInvoice.XeroStatus = "DELETED";
+        localInvoice.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        return StatusCode(200, "Invoice deleted successfully.");
+    }
 
 
-        public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
+
+    public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
         {
         // Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
         var existingInvoice = await _db.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
@@ -434,93 +425,96 @@ return updatedInvoiceId ?? invoiceId;
         }
 
 
-        /*
-        public async Task<int> FetchAndStoreInvoicesAsync()
+    /*
+    public async Task<int> FetchAndStoreInvoicesAsync()
+    {
+        var auth = await _db.QuickBooksTokens
+            .Where(x => x.Company == "Xero")
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync();
+
+        if (auth == null)
+            throw new Exception("Xero auth details not found.");
+
+        // Prepare HTTP client
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+        client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        // Always fetch page 1 invoices
+        var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices?page=1");
+
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        var doc = JObject.Parse(json);
+        var invoicesJson = doc["Invoices"];
+
+        int count = 0;
+
+        foreach (var invoiceJson in invoicesJson)
         {
-            var auth = await _db.QuickBooksTokens
-                .Where(x => x.Company == "Xero")
-                .OrderByDescending(x => x.CreatedAtUtc)
-                .FirstOrDefaultAsync();
+            var invoiceId = invoiceJson["InvoiceID"]?.ToString();
+            var existing = await _db.Invoices.FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
+            if (existing != null) continue;
 
-            if (auth == null)
-                throw new Exception("Xero auth details not found.");
-
-            // Prepare HTTP client
-            var client = _httpClientFactory.CreateClient();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
-            client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-            // Always fetch page 1 invoices
-            var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices?page=1");
-
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
-            var doc = JObject.Parse(json);
-            var invoicesJson = doc["Invoices"];
-
-            int count = 0;
-
-            foreach (var invoiceJson in invoicesJson)
+            var invoice = new Invoice
             {
-                var invoiceId = invoiceJson["InvoiceID"]?.ToString();
-                var existing = await _db.Invoices.FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
-                if (existing != null) continue;
+                QuickBooksId = invoiceId,
+                CustomerName = invoiceJson["Contact"]?["Name"]?.ToString() ?? string.Empty,
+                CustomerEmail = invoiceJson["Contact"]?["EmailAddress"]?.ToString() ?? string.Empty,
+                DocNumber = invoiceJson["InvoiceNumber"]?.ToString() ?? string.Empty,
+                CustomerMemo = invoiceJson["Reference"]?.ToString() ?? string.Empty,
+                TxnDate = TryGetDateTime(invoiceJson, "Date"),
+                DueDate = TryGetDateTime(invoiceJson, "DueDate"),
+                Subtotal = invoiceJson["SubTotal"]?.ToObject<decimal>() ?? 0,
+                TotalAmt = invoiceJson["Total"]?.ToObject<decimal>() ?? 0,
+                Balance = invoiceJson["AmountDue"]?.ToObject<decimal>() ?? 0,
+                XeroInvoiceType = invoiceJson["Type"]?.ToString() ?? string.Empty,
+                XeroStatus = invoiceJson["Status"]?.ToString() ?? string.Empty,
+                XeroBrandingThemeID = invoiceJson["BrandingThemeID"]?.ToString() ?? string.Empty,
+                XeroCurrencyCode = invoiceJson["CurrencyCode"]?.ToString() ?? string.Empty,
+                XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1,
+                XeroIsDiscounted = invoiceJson["IsDiscounted"]?.ToObject<bool>() ?? false,
+                XeroLineAmountTypes = invoiceJson["LineAmountTypes"]?.ToString() ?? string.Empty,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Platform = "Xero",
+            };
 
-                var invoice = new Invoice
+            foreach (var lineJson in invoiceJson["LineItems"])
+            {
+                invoice.LineItems.Add(new InvoiceLineItem
                 {
-                    QuickBooksId = invoiceId,
-                    CustomerName = invoiceJson["Contact"]?["Name"]?.ToString() ?? string.Empty,
-                    CustomerEmail = invoiceJson["Contact"]?["EmailAddress"]?.ToString() ?? string.Empty,
-                    DocNumber = invoiceJson["InvoiceNumber"]?.ToString() ?? string.Empty,
-                    CustomerMemo = invoiceJson["Reference"]?.ToString() ?? string.Empty,
-                    TxnDate = TryGetDateTime(invoiceJson, "Date"),
-                    DueDate = TryGetDateTime(invoiceJson, "DueDate"),
-                    Subtotal = invoiceJson["SubTotal"]?.ToObject<decimal>() ?? 0,
-                    TotalAmt = invoiceJson["Total"]?.ToObject<decimal>() ?? 0,
-                    Balance = invoiceJson["AmountDue"]?.ToObject<decimal>() ?? 0,
-                    XeroInvoiceType = invoiceJson["Type"]?.ToString() ?? string.Empty,
-                    XeroStatus = invoiceJson["Status"]?.ToString() ?? string.Empty,
-                    XeroBrandingThemeID = invoiceJson["BrandingThemeID"]?.ToString() ?? string.Empty,
-                    XeroCurrencyCode = invoiceJson["CurrencyCode"]?.ToString() ?? string.Empty,
-                    XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1,
-                    XeroIsDiscounted = invoiceJson["IsDiscounted"]?.ToObject<bool>() ?? false,
-                    XeroLineAmountTypes = invoiceJson["LineAmountTypes"]?.ToString() ?? string.Empty,
+                    Description = lineJson["Description"]?.ToString() ?? string.Empty,
+                    Quantity = lineJson["Quantity"]?.ToObject<decimal>() ?? 0,
+                    Rate = lineJson["UnitAmount"]?.ToObject<decimal>() ?? 0,
+                    Amount = lineJson["LineAmount"]?.ToObject<decimal>() ?? 0,
+                    XeroLineItemId = lineJson["LineItemID"]?.ToString() ?? string.Empty,
+                    XeroAccountCode = lineJson["AccountCode"]?.ToString() ?? string.Empty,
+                    XeroTaxType = lineJson["TaxType"]?.ToString() ?? string.Empty,
+                    XeroTaxAmount = lineJson["TaxAmount"]?.ToObject<decimal>() ?? 0,
+                    XeroDiscountRate = lineJson["DiscountRate"]?.ToObject<decimal>() ?? 0,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    Platform = "Xero",
-                };
-
-                foreach (var lineJson in invoiceJson["LineItems"])
-                {
-                    invoice.LineItems.Add(new InvoiceLineItem
-                    {
-                        Description = lineJson["Description"]?.ToString() ?? string.Empty,
-                        Quantity = lineJson["Quantity"]?.ToObject<decimal>() ?? 0,
-                        Rate = lineJson["UnitAmount"]?.ToObject<decimal>() ?? 0,
-                        Amount = lineJson["LineAmount"]?.ToObject<decimal>() ?? 0,
-                        XeroLineItemId = lineJson["LineItemID"]?.ToString() ?? string.Empty,
-                        XeroAccountCode = lineJson["AccountCode"]?.ToString() ?? string.Empty,
-                        XeroTaxType = lineJson["TaxType"]?.ToString() ?? string.Empty,
-                        XeroTaxAmount = lineJson["TaxAmount"]?.ToObject<decimal>() ?? 0,
-                        XeroDiscountRate = lineJson["DiscountRate"]?.ToObject<decimal>() ?? 0,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    });
-                }
-
-                _db.Invoices.Add(invoice);
-                count++;
+                    UpdatedAt = DateTime.UtcNow
+                });
             }
 
-            await _db.SaveChangesAsync();
-
-            return count;
+            _db.Invoices.Add(invoice);
+            count++;
         }
 
-        */
+        await _db.SaveChangesAsync();
 
-
+        return count;
     }
+
+    */
+
+    private IActionResult StatusCode(int v1, string v2)
+    {
+        throw new NotImplementedException();
+    }
+}
 
