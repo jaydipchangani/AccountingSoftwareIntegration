@@ -401,6 +401,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "invoiceType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

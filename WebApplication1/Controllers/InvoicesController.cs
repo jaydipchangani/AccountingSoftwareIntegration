@@ -154,37 +154,36 @@ namespace WebApplication1.Controllers
     [FromQuery] int pageNumber = 1,
     [FromQuery] int pageSize = 10,
     [FromQuery] string? searchTerm = null,
-    [FromQuery] string? platform = null)
+    [FromQuery] string? platform = null,
+    [FromQuery] string? invoiceType = null) 
         {
             try
             {
                 var query = _dbContext.Invoices.AsQueryable();
 
-                // 🔍 Filter by Platform (e.g., "QuickBooks", "Xero")
                 if (!string.IsNullOrEmpty(platform))
                 {
                     query = query.Where(i => i.Platform.ToLower() == platform.ToLower());
                 }
 
-                // 🔍 Global search across relevant fields
-                if (!string.IsNullOrEmpty(searchTerm))
+                if (!string.IsNullOrEmpty(invoiceType))
                 {
-                    query = query.Where(i =>
-                        i.CustomerName.Contains(searchTerm));
-
+                    query = query.Where(i => i.XeroInvoiceType == invoiceType);
                 }
 
-                // 📊 Total records before pagination
+                if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    query = query.Where(i => i.CustomerName.Contains(searchTerm));
+                }
+
                 var totalRecords = await query.CountAsync();
 
-                // 📥 Apply pagination
                 var invoices = await query
-                    .OrderByDescending(i => i.TxnDate) // or any sorting preference
+                    .OrderByDescending(i => i.TxnDate)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize)
                     .ToListAsync();
 
-                // 📦 Response with metadata
                 return Ok(new
                 {
                     TotalRecords = totalRecords,
@@ -199,6 +198,7 @@ namespace WebApplication1.Controllers
                 return StatusCode(500, "An error occurred while fetching invoices.");
             }
         }
+
 
 
 

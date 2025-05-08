@@ -20,7 +20,7 @@ public class Invoice
     public string CustomerName { get; set; } = string.Empty;        // Xero: Contact.Name
     public string CustomerEmail { get; set; } = string.Empty;
 
-    public string DocNumber { get; set; } = string.Empty;           // Xero: InvoiceNumber
+    public string? DocNumber { get; set; }           // Xero: InvoiceNumber
     public string CustomerMemo { get; set; } = string.Empty;        // Xero: Reference
     public DateTime TxnDate { get; set; } = DateTime.MinValue;      // Xero: Date
     public DateTime DueDate { get; set; } = DateTime.MinValue;      // Xero: DueDate

@@ -34,13 +34,10 @@ namespace BusinessLayer.Services.Xero
 
         }
 
-        public async Task<int> FetchAndStoreInvoicesAsync(string? type = null) // null, "ACCPAY", or "ACCREC"
-
+        public async Task<int> FetchAndStoreInvoicesAsync(string? type = null)
         {
             if (type != null && type != "ACCPAY" && type != "ACCREC")
                 throw new ArgumentException("Invalid invoice type. Allowed values are: ACCPAY, ACCREC, or null.");
-
-
 
             var auth = await _db.QuickBooksTokens
                 .Where(x => x.Company == "Xero")
@@ -50,44 +47,24 @@ namespace BusinessLayer.Services.Xero
             if (auth == null)
                 throw new Exception("Xero auth details not found.");
 
-            // Step 1: Get the last sync timestamp
-            var syncState = await _db.SyncStates
-     .FirstOrDefaultAsync(x => x.EntityName == "Invoice" && x.Platform == "Xero");
-
-
-            var lastSyncedAt = syncState?.LastSyncedAt ?? DateTime.UtcNow.AddDays(-30); // fallback to 30 days ago
-
-            var formattedSyncTime = lastSyncedAt.ToString("R"); // RFC1123 format
-
-            // Step 2: Prepare HTTP client
             var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
             client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.IfModifiedSince = lastSyncedAt;
 
             var response = await client.GetAsync("https://api.xero.com/api.xro/2.0/Invoices?page=1");
-
-            if (response.StatusCode == HttpStatusCode.NotModified)
-                return 0; // No new or updated invoices
-
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
             var doc = JObject.Parse(json);
             var invoicesJson = doc["Invoices"];
-
             int count = 0;
 
             var filteredInvoices = type == null
-    ? invoicesJson
-    : invoicesJson.Where(i => i["Type"]?.ToString() == type);
-
-
-
+                ? invoicesJson
+                : invoicesJson.Where(i => i["Type"]?.ToString() == type);
 
             foreach (var invoiceJson in filteredInvoices)
-
             {
                 var invoiceId = invoiceJson["InvoiceID"]?.ToString();
                 var existing = await _db.Invoices.FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
@@ -98,7 +75,7 @@ namespace BusinessLayer.Services.Xero
                     QuickBooksId = invoiceId,
                     CustomerName = invoiceJson["Contact"]?["Name"]?.ToString() ?? string.Empty,
                     CustomerEmail = invoiceJson["Contact"]?["EmailAddress"]?.ToString() ?? string.Empty,
-                    DocNumber = invoiceJson["InvoiceNumber"]?.ToString() ?? string.Empty,
+                    DocNumber = invoiceJson["InvoiceNumber"]?.ToString(),
                     CustomerMemo = invoiceJson["Reference"]?.ToString() ?? string.Empty,
                     TxnDate = TryGetDateTime(invoiceJson, "Date"),
                     DueDate = TryGetDateTime(invoiceJson, "DueDate"),
@@ -141,26 +118,9 @@ namespace BusinessLayer.Services.Xero
 
             await _db.SaveChangesAsync();
 
-            // Step 3: Update sync time
-            if (syncState == null)
-            {
-                syncState = new SyncState
-                {
-                    EntityName = "Invoice",
-                    Platform = "Xero",
-                    LastSyncedAt = DateTime.UtcNow
-                };
-                _db.SyncStates.Add(syncState);
-            }
-            else
-            {
-                syncState.LastSyncedAt = DateTime.UtcNow;
-            }
-
-            await _db.SaveChangesAsync();
-
             return count;
         }
+
 
 
         private DateTime TryGetDateTime(JToken jsonElement, string propertyName)

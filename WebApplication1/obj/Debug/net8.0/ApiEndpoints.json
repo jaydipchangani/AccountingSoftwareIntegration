@@ -286,6 +286,11 @@
         "Name": "platform",
         "Type": "System.String",
         "IsRequired": false
+      },
+      {
+        "Name": "invoiceType",
+        "Type": "System.String",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
