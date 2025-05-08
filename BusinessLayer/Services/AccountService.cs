@@ -28,6 +28,7 @@ namespace Businesslayer.Services
         {
             var token = await _context.QuickBooksTokens
                 .OrderByDescending(q => q.Id)
+                .Where(q => q.Company == "QBO")
                 .FirstOrDefaultAsync();
 
             if (token == null || string.IsNullOrWhiteSpace(token.AccessToken) || string.IsNullOrWhiteSpace(token.RealmId))

@@ -65,6 +65,7 @@ namespace WebApplication1.Services
             // Get QuickBooks credentials
             var qbToken = await _context.QuickBooksTokens
                 .OrderByDescending(q => q.Id)
+                .Where(q => q.Company == "QBO")
                 .FirstOrDefaultAsync();
 
             if (qbToken == null || string.IsNullOrWhiteSpace(qbToken.AccessToken) || string.IsNullOrWhiteSpace(qbToken.RealmId))
@@ -158,6 +159,7 @@ namespace WebApplication1.Services
         {
             var qbToken = await _context.QuickBooksTokens
                 .OrderByDescending(q => q.Id)
+                .Where(q => q.Company == "QBO")
                 .FirstOrDefaultAsync();
 
             if (qbToken == null || string.IsNullOrWhiteSpace(qbToken.AccessToken) || string.IsNullOrWhiteSpace(qbToken.RealmId))

@@ -35,6 +35,7 @@ public class BillService
         // Step 2: Fetch accessToken and realmId
         var auth = await _context.QuickBooksTokens
             .OrderByDescending(q => q.CreatedAt)
+            .Where(q => q.Company == "QBO")
             .FirstOrDefaultAsync();
 
         if (auth == null || string.IsNullOrEmpty(auth.AccessToken) || string.IsNullOrEmpty(auth.RealmId))
@@ -164,6 +165,7 @@ public class BillService
     {
         var auth = await _context.QuickBooksTokens
             .OrderByDescending(q => q.CreatedAt)
+            .Where(q => q.Company == "QBO")
             .FirstOrDefaultAsync();
 
         if (auth == null || string.IsNullOrEmpty(auth.AccessToken) || string.IsNullOrEmpty(auth.RealmId))
