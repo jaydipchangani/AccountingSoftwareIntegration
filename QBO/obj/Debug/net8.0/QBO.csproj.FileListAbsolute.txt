@@ -10,3 +10,7 @@ C:\AccountingIntegration\Backend\WebApplication1\QBO\obj\Debug\net8.0\QBO.dll
 C:\AccountingIntegration\Backend\WebApplication1\QBO\obj\Debug\net8.0\refint\QBO.dll
 C:\AccountingIntegration\Backend\WebApplication1\QBO\obj\Debug\net8.0\QBO.pdb
 C:\AccountingIntegration\Backend\WebApplication1\QBO\obj\Debug\net8.0\ref\QBO.dll
+C:\AccountingIntegration\Backend\WebApplication1\QBO\obj\Debug\net8.0\QBO.csproj.AssemblyReference.cache
+C:\AccountingIntegration\Backend\WebApplication1\QBO\bin\Debug\net8.0\DataLayer.dll
+C:\AccountingIntegration\Backend\WebApplication1\QBO\bin\Debug\net8.0\DataLayer.pdb
+C:\AccountingIntegration\Backend\WebApplication1\QBO\obj\Debug\net8.0\QBO.csproj.Up2Date
