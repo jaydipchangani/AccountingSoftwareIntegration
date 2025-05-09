@@ -11,6 +11,7 @@ using XeroLayer;
 using XeroLayer.XeroAuth;
 using XeroLayer.Interface;
 using XeroLayer.Interfaces;
+using QBO.QBOAuth;
 
 
 
@@ -18,7 +19,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services.Configure<XeroApiOptions>(builder.Configuration.GetSection("XeroApi"));
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthService, WebApplication1.Services.AuthService>();
+
 
 builder.Services.AddHttpClient<ProductService>();
 

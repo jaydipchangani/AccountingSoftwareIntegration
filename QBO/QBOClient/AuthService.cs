@@ -5,18 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using QBO.QBOAuth;
 using WebApplication1.Data;
 using WebApplication1.Models;
 
 namespace WebApplication1.Services
 {
-    public interface IAuthService
-    {
-        IActionResult GenerateLoginRedirect();
-        Task<IActionResult> ExchangeCodeAsync(ExchangeRequest request);
-        Task<IActionResult> LogoutAsync();
-        IActionResult GetTokenStatus();
-    }
+
 
     public class AuthService : IAuthService
     {

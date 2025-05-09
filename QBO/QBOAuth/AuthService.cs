@@ -11,13 +11,7 @@ using WebApplication1.Models;
 
 namespace QBO.QBOAuth
 {
-    public interface IAuthService
-    {
-        IActionResult GenerateLoginRedirect();
-        Task<IActionResult> ExchangeCodeAsync(ExchangeRequest request);
-        Task<IActionResult> LogoutAsync();
-        IActionResult GetTokenStatus();
-    }
+
 
     public class AuthService : IAuthService
     {
