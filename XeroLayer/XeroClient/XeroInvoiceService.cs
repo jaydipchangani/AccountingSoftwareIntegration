@@ -254,7 +254,7 @@ using Microsoft.Extensions.DependencyInjection;
                     }
 
 
-    public async Task<IActionResult> DeleteInvoice(string invoiceId)
+        public async Task<IActionResult> DeleteInvoice(string invoiceId)
     {
         var tokenDetails = await _db.QuickBooksTokens
             .Where(x => x.Company == "Xero")
@@ -327,7 +327,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 
 
-    public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
+        public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
         {
         // Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
         var existingInvoice = await _db.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
