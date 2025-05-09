@@ -8,7 +8,7 @@ using XeroLayer.Interface;
 using WebApplication1.Models;
 using WebApplication1.Models.Xero;
 
-namespace XeroLayer.XeroAuth
+namespace XeroLayer.XeroClient
 {
     public class XeroAuthService : IXeroAuthService
     {

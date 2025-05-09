@@ -8,11 +8,11 @@ using WebApplication1.Models.Xero;
 using Businesslayer.Services;
 using DataLayer.Models;
 using XeroLayer;
-using XeroLayer.XeroAuth;
 using XeroLayer.Interface;
 using XeroLayer.Interfaces;
 using QBO.QBOAuth;
 using QBO.Interface;
+using XeroLayer.XeroClient;
 
 
 var builder = WebApplication.CreateBuilder(args);
