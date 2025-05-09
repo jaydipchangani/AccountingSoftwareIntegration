@@ -10,6 +10,7 @@ using DataLayer.Models;
 using XeroLayer;
 using XeroLayer.XeroAuth;
 using XeroLayer.Interface;
+using XeroLayer.Interfaces;
 
 
 
@@ -34,6 +35,8 @@ builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CSVParseService>();
 builder.Services.AddScoped<IXeroAuthService, XeroAuthService>();
 builder.Services.AddScoped<IXeroAccountService, XeroAccountService>();
+builder.Services.AddScoped<IXeroCustomerService, XeroCustomerService>();
+
 
 builder.Services.AddHttpClient<XeroAccountService>(); // registers with HttpClient
 builder.Services.AddScoped<XeroAccountService>();      // registers as a scoped service

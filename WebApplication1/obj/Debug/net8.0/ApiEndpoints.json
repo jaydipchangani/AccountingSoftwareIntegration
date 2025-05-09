@@ -699,7 +699,7 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
-    "Method": "GetXeroCustomers",
+    "Method": "GetXeroCustomersAsync",
     "RelativePath": "api/Xero/active",
     "HttpMethod": "GET",
     "IsController": true,
@@ -709,7 +709,7 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
-    "Method": "AddCustomerToXero",
+    "Method": "AddCustomerToXeroAsync",
     "RelativePath": "api/Xero/add-customer-to-xero",
     "HttpMethod": "POST",
     "IsController": true,
@@ -725,7 +725,7 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
-    "Method": "ArchiveContact",
+    "Method": "ArchiveContactAsync",
     "RelativePath": "api/Xero/archive-contact/{contactId}",
     "HttpMethod": "POST",
     "IsController": true,
@@ -741,7 +741,7 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
-    "Method": "SyncContacts",
+    "Method": "SyncXeroContactsAsync",
     "RelativePath": "api/Xero/sync-contacts",
     "HttpMethod": "POST",
     "IsController": true,
@@ -751,7 +751,7 @@
   },
   {
     "ContainingType": "WebApplication1.Controllers.XeroController",
-    "Method": "UpdateCustomerInXero",
+    "Method": "UpdateCustomerInXeroAsync",
     "RelativePath": "api/Xero/update-customer",
     "HttpMethod": "POST",
     "IsController": true,
