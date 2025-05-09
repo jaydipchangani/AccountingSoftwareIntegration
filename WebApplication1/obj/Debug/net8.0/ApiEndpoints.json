@@ -807,16 +807,6 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "XeroAuthController",
-    "Method": "Logout",
-    "RelativePath": "api/XeroAuth/logout",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": []
-  },
-  {
     "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
     "Method": "FetchAndStoreXeroInvoices",
     "RelativePath": "api/XeroInvoice",

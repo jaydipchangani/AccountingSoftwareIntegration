@@ -1,54 +1,36 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using XeroLayer.Interface;
 
-[ApiController]
 [Route("api/[controller]")]
+[ApiController]
 public class XeroAuthController : ControllerBase
 {
-    private readonly XeroAuthService _xeroService;
+    private readonly IXeroAuthService _xeroAuthService;
 
-    public XeroAuthController(XeroAuthService xeroService)
+    public XeroAuthController(IXeroAuthService xeroAuthService)
     {
-        _xeroService = xeroService;
+        _xeroAuthService = xeroAuthService;
     }
 
-    // Redirect user to Xero login page for OAuth
     [HttpGet("login")]
     public IActionResult Login()
     {
-        var authUrl = _xeroService.BuildAuthorizationUrl();
-        return Redirect(authUrl); // Redirect to Xero authorization page
+        var authUrl = _xeroAuthService.BuildAuthorizationUrl();
+        return Redirect(authUrl);
     }
 
-    // Xero OAuth callback to exchange the code for an access token
     [HttpGet("callback")]
     public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
     {
-        try
-        {
-            var result = await _xeroService.ExchangeCodeForTokenAsync(code, state);
+        var token = await _xeroAuthService.ExchangeCodeForTokenAsync(code, state);
 
-            // After successful exchange, redirect to the homepage or a relevant page
+        if (token != null)
+        {
             return Redirect("http://localhost:5173/home");
         }
-        catch (Exception ex)
+        else
         {
-            // In case of error during the token exchange
-            return StatusCode(500, ex.Message);
+            return BadRequest("Xero authorization failed.");
         }
     }
-
-
-    [HttpGet("logout")]
-    public async Task<IActionResult> Logout()
-    {
-        var success = await _xeroService.LogoutFromXeroAsync();
-
-        if (!success)
-        {
-            return NotFound(new { message = "No Xero token found to logout." });
-        }
-
-        return Ok(new { message = "Successfully logged out from Xero." });
-    }
-
 }

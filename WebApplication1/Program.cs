@@ -8,6 +8,9 @@ using WebApplication1.Models.Xero;
 using Businesslayer.Services;
 using DataLayer.Models;
 using XeroLayer;
+using XeroLayer.XeroAuth;
+using XeroLayer.Interface;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,8 +32,7 @@ builder.Services.AddScoped<VendorService>();
 builder.Services.AddScoped<BillService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CSVParseService>();
-builder.Services.AddHttpClient<XeroAuthService>();
-builder.Services.AddScoped<XeroAuthService>();
+builder.Services.AddScoped<IXeroAuthService, XeroAuthService>();
 builder.Services.AddHttpClient<XeroAccountService>(); // registers with HttpClient
 builder.Services.AddScoped<XeroAccountService>();      // registers as a scoped service
 

@@ -12,6 +12,7 @@ using DataLayer.Models.Xero;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
+using DataLayer.Models;
 
 
 
@@ -36,13 +37,20 @@ using Microsoft.Extensions.DependencyInjection;
             throw new ArgumentException("Invalid invoice type. Allowed values are: ACCPAY, ACCREC, or null.");
 
         var auth = await _db.QuickBooksTokens
-            .Where(x => x.Company == "Xero")
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .FirstOrDefaultAsync();
+    .Where(x => x.Company == "Xero")
+    .OrderByDescending(x => x.CreatedAtUtc)
+    .FirstOrDefaultAsync();
 
         if (auth == null)
             throw new Exception("Xero auth details not found.");
 
+        // Step 1: Get the last sync timestamp
+        var syncState = await _db.SyncStates
+            .FirstOrDefaultAsync(x => x.EntityName == "Invoice" && x.Platform == "Xero");
+
+        var lastSyncedAt = syncState?.LastSyncedAt ?? DateTime.UtcNow.AddDays(-30);
+
+        // Step 2: Prepare HTTP client
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
         client.DefaultRequestHeaders.Add("xero-tenant-id", auth.TenantId);
@@ -54,56 +62,59 @@ using Microsoft.Extensions.DependencyInjection;
         var json = await response.Content.ReadAsStringAsync();
         var doc = JObject.Parse(json);
         var invoicesJson = doc["Invoices"];
+
         int count = 0;
-
-        var existingXeroInvoices = await _db.Invoices
-            .Include(i => i.LineItems)
-            .Where(i => i.Platform == "Xero")
-            .ToListAsync();
-
-        _db.InvoiceLineItems.RemoveRange(existingXeroInvoices.SelectMany(i => i.LineItems));
-        _db.Invoices.RemoveRange(existingXeroInvoices);
-        await _db.SaveChangesAsync();
 
         var filteredInvoices = type == null
             ? invoicesJson
-            : invoicesJson.Where(i => i["Type"]?.ToString() == type);
+            : invoicesJson!.Where(i => i["Type"]?.ToString() == type);
 
-        foreach (var invoiceJson in filteredInvoices)
+
+
+        foreach (var invoiceJson in filteredInvoices!)
         {
-            var rawDocNumber = invoiceJson["InvoiceNumber"]?.ToString();
-            var docNumber = string.IsNullOrWhiteSpace(rawDocNumber) ? $"XERO-{Guid.NewGuid():N}" : rawDocNumber;
-
-            if (await _db.Invoices.AnyAsync(i => i.DocNumber == docNumber && i.Platform != "Xero"))
-                continue; // Avoid conflict if the same DocNumber exists from a different platform
-
             var invoiceId = invoiceJson["InvoiceID"]?.ToString();
+            var existing = await _db.Invoices
+                .Include(i => i.LineItems)
+                .FirstOrDefaultAsync(i => i.QuickBooksId == invoiceId);
 
-            var invoice = new Invoice
+            var docNumber = invoiceJson["InvoiceNumber"]?.ToString();
+
+            if (string.IsNullOrWhiteSpace(docNumber))
             {
-                QuickBooksId = invoiceId,
-                CustomerName = invoiceJson["Contact"]?["Name"]?.ToString() ?? string.Empty,
-                CustomerEmail = invoiceJson["Contact"]?["EmailAddress"]?.ToString() ?? string.Empty,
-                DocNumber = docNumber,
-                CustomerMemo = invoiceJson["Reference"]?.ToString() ?? string.Empty,
-                TxnDate = TryGetDateTime(invoiceJson, "Date"),
-                DueDate = TryGetDateTime(invoiceJson, "DueDate"),
-                Subtotal = invoiceJson["SubTotal"]?.ToObject<decimal>() ?? 0,
-                TotalAmt = invoiceJson["Total"]?.ToObject<decimal>() ?? 0,
-                Balance = invoiceJson["AmountDue"]?.ToObject<decimal>() ?? 0,
-                XeroInvoiceType = invoiceJson["Type"]?.ToString() ?? string.Empty,
-                XeroStatus = invoiceJson["Status"]?.ToString() ?? string.Empty,
-                XeroBrandingThemeID = invoiceJson["BrandingThemeID"]?.ToString() ?? string.Empty,
-                XeroCurrencyCode = invoiceJson["CurrencyCode"]?.ToString() ?? string.Empty,
-                XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1,
-                XeroIsDiscounted = invoiceJson["IsDiscounted"]?.ToObject<bool>() ?? false,
-                XeroLineAmountTypes = invoiceJson["LineAmountTypes"]?.ToString() ?? string.Empty,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Platform = "Xero",
-            };
+                continue;
+            }
 
-            foreach (var lineJson in invoiceJson["LineItems"])
+            var isNew = existing == null;
+            var invoice = existing ?? new Invoice { CreatedAt = DateTime.UtcNow };
+
+            invoice.QuickBooksId = invoiceId;
+            invoice.CustomerName = invoiceJson["Contact"]?["Name"]?.ToString() ?? string.Empty;
+            invoice.CustomerEmail = invoiceJson["Contact"]?["EmailAddress"]?.ToString() ?? string.Empty;
+            invoice.DocNumber = docNumber;
+            invoice.CustomerMemo = invoiceJson["Reference"]?.ToString() ?? string.Empty;
+            invoice.TxnDate = TryGetDateTime(invoiceJson, "Date");
+            invoice.DueDate = TryGetDateTime(invoiceJson, "DueDate");
+            invoice.Subtotal = invoiceJson["SubTotal"]?.ToObject<decimal>() ?? 0;
+            invoice.TotalAmt = invoiceJson["Total"]?.ToObject<decimal>() ?? 0;
+            invoice.Balance = invoiceJson["AmountDue"]?.ToObject<decimal>() ?? 0;
+            invoice.XeroInvoiceType = invoiceJson["Type"]?.ToString() ?? string.Empty;
+            invoice.XeroStatus = invoiceJson["Status"]?.ToString() ?? string.Empty;
+            invoice.XeroBrandingThemeID = invoiceJson["BrandingThemeID"]?.ToString() ?? string.Empty;
+            invoice.XeroCurrencyCode = invoiceJson["CurrencyCode"]?.ToString() ?? string.Empty;
+            invoice.XeroCurrencyRate = invoiceJson["CurrencyRate"]?.ToObject<decimal>() ?? 1;
+            invoice.XeroIsDiscounted = invoiceJson["IsDiscounted"]?.ToObject<bool>() ?? false;
+            invoice.XeroLineAmountTypes = invoiceJson["LineAmountTypes"]?.ToString() ?? string.Empty;
+            invoice.UpdatedAt = DateTime.UtcNow;
+            invoice.Platform = "Xero";
+
+            // Clear and replace line items if updating
+            if (!isNew)
+            {
+                _db.InvoiceLineItems.RemoveRange(existing.LineItems);
+            }
+
+            foreach (var lineJson in invoiceJson["LineItems"]!)
             {
                 invoice.LineItems.Add(new InvoiceLineItem
                 {
@@ -121,13 +132,34 @@ using Microsoft.Extensions.DependencyInjection;
                 });
             }
 
-            _db.Invoices.Add(invoice);
+            if (isNew)
+                _db.Invoices.Add(invoice);
+
             count++;
         }
 
         await _db.SaveChangesAsync();
 
+        // Step 3: Update sync time
+        if (syncState == null)
+        {
+            syncState = new SyncState
+            {
+                EntityName = "Invoice",
+                Platform = "Xero",
+                LastSyncedAt = DateTime.UtcNow
+            };
+            _db.SyncStates.Add(syncState);
+        }
+        else
+        {
+            syncState.LastSyncedAt = DateTime.UtcNow;
+        }
+
+        await _db.SaveChangesAsync();
+
         return count;
+
     }
 
         private DateTime TryGetDateTime(JToken jsonElement, string propertyName)

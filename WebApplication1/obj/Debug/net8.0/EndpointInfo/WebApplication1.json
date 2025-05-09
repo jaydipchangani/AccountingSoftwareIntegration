@@ -1261,18 +1261,6 @@
         }
       }
     },
-    "/api/XeroAuth/logout": {
-      "get": {
-        "tags": [
-          "XeroAuth"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/XeroInvoice": {
       "get": {
         "tags": [
