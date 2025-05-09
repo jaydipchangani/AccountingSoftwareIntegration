@@ -5,7 +5,7 @@ using WebApplication1.Models;
 using WebApplication1.Models.Xero.WebApplication1.Dtos;
 using XeroLayer.Interfaces;
 
-namespace WebApplication1.Controllers
+namespace WebApplication1.Controllers.Xero
 {
     [Route("api/[controller]")]
     [ApiController]

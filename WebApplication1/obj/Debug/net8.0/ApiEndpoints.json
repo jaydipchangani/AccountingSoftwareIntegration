@@ -698,7 +698,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroController",
     "Method": "GetXeroCustomersAsync",
     "RelativePath": "api/Xero/active",
     "HttpMethod": "GET",
@@ -708,7 +708,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroController",
     "Method": "AddCustomerToXeroAsync",
     "RelativePath": "api/Xero/add-customer-to-xero",
     "HttpMethod": "POST",
@@ -724,7 +724,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroController",
     "Method": "ArchiveContactAsync",
     "RelativePath": "api/Xero/archive-contact/{contactId}",
     "HttpMethod": "POST",
@@ -740,7 +740,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroController",
     "Method": "SyncXeroContactsAsync",
     "RelativePath": "api/Xero/sync-contacts",
     "HttpMethod": "POST",
@@ -750,7 +750,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroController",
     "Method": "UpdateCustomerInXeroAsync",
     "RelativePath": "api/Xero/update-customer",
     "HttpMethod": "POST",
@@ -807,7 +807,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroInvoiceController",
     "Method": "FetchAndStoreXeroInvoices",
     "RelativePath": "api/XeroInvoice",
     "HttpMethod": "GET",
@@ -823,7 +823,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroInvoiceController",
     "Method": "AddInvoice",
     "RelativePath": "api/XeroInvoice",
     "HttpMethod": "POST",
@@ -839,7 +839,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroInvoiceController",
     "Method": "DeleteInvoice",
     "RelativePath": "api/XeroInvoice/{invoiceId}",
     "HttpMethod": "DELETE",
@@ -855,7 +855,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroInvoiceController",
     "Method": "UpdateInvoice",
     "RelativePath": "api/XeroInvoice/{invoiceId}",
     "HttpMethod": "POST",
@@ -876,7 +876,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "WebApplication1.Controllers.XeroInvoiceController",
+    "ContainingType": "WebApplication1.Controllers.Xero.XeroInvoiceController",
     "Method": "GetInvoiceById",
     "RelativePath": "api/XeroInvoice/{invoiceId}",
     "HttpMethod": "GET",

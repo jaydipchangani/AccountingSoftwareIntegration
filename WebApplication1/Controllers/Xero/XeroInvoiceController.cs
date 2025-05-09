@@ -7,7 +7,7 @@ using XeroLayer.Interface;
 
 
 
-namespace WebApplication1.Controllers
+namespace WebApplication1.Controllers.Xero
 {
     [Route("api/[controller]")]
     [ApiController]
