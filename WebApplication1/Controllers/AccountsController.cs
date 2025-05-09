@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Services;
 using Businesslayer.Services;
 
 namespace WebApplication1.Controllers
@@ -8,9 +7,9 @@ namespace WebApplication1.Controllers
     [Route("api/[controller]")]
     public class AccountController : ControllerBase
     {
-        private readonly AccountService _accountService;
+        private readonly IAccountService _accountService;
 
-        public AccountController(AccountService accountService)
+        public AccountController(IAccountService accountService)
         {
             _accountService = accountService;
         }

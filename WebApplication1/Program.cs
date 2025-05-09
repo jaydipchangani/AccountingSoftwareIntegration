@@ -37,6 +37,8 @@ builder.Services.AddScoped<IXeroAuthService, XeroAuthService>();
 builder.Services.AddScoped<IXeroAccountService, XeroAccountService>();
 builder.Services.AddScoped<IXeroCustomerService, XeroCustomerService>();
 builder.Services.AddScoped<IXeroInvoiceService, XeroInvoiceService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+
 
 
 

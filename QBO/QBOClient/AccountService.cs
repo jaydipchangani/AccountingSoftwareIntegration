@@ -3,15 +3,12 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using WebApplication1.Data;
-using WebApplication1.Models;
 using Microsoft.Extensions.Http;
-using System.Net.Http;
 using DataLayer.Models;
-
 
 namespace Businesslayer.Services
 {
-    public class AccountService
+    public class AccountService : IAccountService
     {
         private readonly ApplicationDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
@@ -51,11 +48,9 @@ namespace Businesslayer.Services
                 !queryResponse.TryGetProperty("Account", out var accountsJson))
                 return new List<Account>();
 
-
             _context.Accounts.RemoveRange(_context.Accounts);
             await _context.SaveChangesAsync();
 
- 
             var accountsToAdd = new List<Account>();
 
             foreach (var acc in accountsJson.EnumerateArray())
@@ -69,7 +64,6 @@ namespace Businesslayer.Services
                 });
             }
 
-
             if (accountsToAdd.Any())
             {
                 await _context.Accounts.AddRangeAsync(accountsToAdd);
@@ -78,7 +72,5 @@ namespace Businesslayer.Services
 
             return accountsToAdd;
         }
-
-
     }
 }
