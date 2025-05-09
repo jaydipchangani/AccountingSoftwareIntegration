@@ -1,12 +1,11 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
-using Microsoft.EntityFrameworkCore;
-using DataLayer.Models;
-using WebApplication1.Data;
-using XeroLayer.Interface;
-using WebApplication1.Models;
+using XeroLayer.XeroClient;
 using WebApplication1.Models.Xero;
+using WebApplication1.Models;
+using System.Threading.Tasks;
+using XeroLayer.Interface;
 
 namespace XeroLayer.XeroClient
 {
@@ -14,13 +13,13 @@ namespace XeroLayer.XeroClient
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _config;
-        private readonly ApplicationDbContext _db;
+        private readonly XeroTokenRepository _tokenRepository;
 
-        public XeroAuthService(HttpClient httpClient, IConfiguration config, ApplicationDbContext db)
+        public XeroAuthService(HttpClient httpClient, IConfiguration config, XeroTokenRepository tokenRepository)
         {
             _httpClient = httpClient;
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _db = db;
+            _tokenRepository = tokenRepository;
 
             if (string.IsNullOrEmpty(_config["Xero:ClientId"]))
                 throw new ArgumentNullException("Xero:ClientId is missing in appsettings.json");
@@ -110,62 +109,34 @@ namespace XeroLayer.XeroClient
                 throw new ApplicationException("No Xero tenant found in the connections response.");
             }
 
-            var existingToken = await _db.QuickBooksTokens
-                .FirstOrDefaultAsync(t => t.Company == "Xero");
-
-            if (existingToken != null)
+            var token = new QuickBooksToken
             {
-                existingToken.AccessToken = accessToken;
-                existingToken.RefreshToken = tokenData.GetProperty("refresh_token").GetString();
-                existingToken.IdToken = tokenData.GetProperty("id_token").GetString();
-                existingToken.TokenType = tokenData.GetProperty("token_type").GetString();
-                existingToken.Scope = tokenData.GetProperty("scope").GetString();
-                existingToken.ExpiresIn = tokenData.GetProperty("expires_in").GetInt32();
-                existingToken.ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32());
-                existingToken.CreatedAtUtc = DateTime.UtcNow;
-                existingToken.TenantId = tenantId;
-            }
-            else
-            {
-                var token = new QuickBooksToken
-                {
-                    AccessToken = accessToken,
-                    RefreshToken = tokenData.GetProperty("refresh_token").GetString(),
-                    IdToken = tokenData.GetProperty("id_token").GetString(),
-                    TokenType = tokenData.GetProperty("token_type").GetString(),
-                    Scope = tokenData.GetProperty("scope").GetString(),
-                    ExpiresIn = tokenData.GetProperty("expires_in").GetInt32(),
-                    ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32()),
-                    CreatedAtUtc = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = tenantId,
-                    Company = "Xero"
-                };
+                AccessToken = accessToken,
+                RefreshToken = tokenData.GetProperty("refresh_token").GetString(),
+                IdToken = tokenData.GetProperty("id_token").GetString(),
+                TokenType = tokenData.GetProperty("token_type").GetString(),
+                Scope = tokenData.GetProperty("scope").GetString(),
+                ExpiresIn = tokenData.GetProperty("expires_in").GetInt32(),
+                ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenData.GetProperty("expires_in").GetInt32()),
+                CreatedAtUtc = DateTime.UtcNow,
+                TenantId = tenantId,
+                Company = "Xero"
+            };
 
-                _db.QuickBooksTokens.Add(token);
-            }
+            await _tokenRepository.AddOrUpdateTokenAsync(token);
 
-            await _db.SaveChangesAsync();
-
-            return existingToken;
+            return token;
         }
 
         public async Task<bool> LogoutFromXeroAsync()
         {
-            var token = await _db.QuickBooksTokens
-                .FirstOrDefaultAsync(t => t.Company == "Xero");
-
-            if (token == null)
-                return false;
-
-            _db.QuickBooksTokens.Remove(token);
-            await _db.SaveChangesAsync();
+            await _tokenRepository.RemoveTokenAsync("Xero");
             return true;
         }
 
         public async Task<XeroToken> GetXeroAuthDetailsAsync()
         {
-            var token = await _db.QuickBooksTokens.FirstOrDefaultAsync(t => t.Company == "Xero");
+            var token = await _tokenRepository.GetTokenByCompanyAsync("Xero");
             if (token == null)
                 return null;
 
@@ -174,7 +145,7 @@ namespace XeroLayer.XeroClient
                 AccessToken = token.AccessToken,
                 RefreshToken = token.RefreshToken,
                 TenantId = token.TenantId,
-                ExpiresAtUtc = (DateTime)token.ExpiresAtUtc
+                ExpiresAtUtc = token.ExpiresAtUtc ?? DateTime.UtcNow
             };
         }
     }

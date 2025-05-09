@@ -62,6 +62,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     )
 );
 
+builder.Services.AddScoped<XeroTokenRepository>();
+builder.Services.AddScoped<IXeroAuthService, XeroAuthService>();
 
 // Add services to the container.
 builder.Services.AddCors(options =>

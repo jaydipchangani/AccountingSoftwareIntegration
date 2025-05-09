@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("XeroLayer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e590fc25fdecbe748ad7c7b17ef3c48e2c24ee05")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+238352863f62d9edf26bc841bcda151515734e80")]
 [assembly: System.Reflection.AssemblyProductAttribute("XeroLayer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("XeroLayer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
