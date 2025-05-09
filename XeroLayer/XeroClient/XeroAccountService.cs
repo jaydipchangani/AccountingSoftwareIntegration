@@ -3,8 +3,9 @@ using System.Text.Json;
 using WebApplication1.Models;
 using WebApplication1.Data;
 using Microsoft.EntityFrameworkCore;
+using XeroLayer.Interface;
 
-public class XeroAccountService
+public class XeroAccountService : IXeroAccountService
 {
     private readonly HttpClient _httpClient;
     private readonly ApplicationDbContext _db;
@@ -17,10 +18,10 @@ public class XeroAccountService
 
     public async Task<List<ChartOfAccount>> FetchAccountsFromXeroAsync()
     {
-        // Fetch the latest valid Xero token where Company is "Xero"
+        // original logic remains unchanged
         var token = await _db.QuickBooksTokens
             .Where(t => t.Company == "Xero")
-            .OrderByDescending(t => t.CreatedAtUtc) // assuming latest token is most valid
+            .OrderByDescending(t => t.CreatedAtUtc)
             .FirstOrDefaultAsync();
 
         if (token == null || string.IsNullOrEmpty(token.AccessToken) || string.IsNullOrEmpty(token.TenantId))
@@ -62,13 +63,12 @@ public class XeroAccountService
                 CurrencyValue = "USD",
                 CurrencyName = "US Dollar",
                 CreatedAt = DateTime.UtcNow,
-                Code= acc.GetProperty("Code").GetString()
+                Code = acc.GetProperty("Code").GetString()
             };
 
             accounts.Add(chart);
         }
 
-        // Remove old Xero accounts before inserting new ones
         _db.ChartOfAccounts.RemoveRange(
             _db.ChartOfAccounts.Where(c => c.QuickBooksUserId == tenantId && c.Company == "Xero")
         );
@@ -77,7 +77,5 @@ public class XeroAccountService
         await _db.SaveChangesAsync();
 
         return accounts;
-
     }
-
 }

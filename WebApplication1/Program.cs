@@ -33,6 +33,8 @@ builder.Services.AddScoped<BillService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<CSVParseService>();
 builder.Services.AddScoped<IXeroAuthService, XeroAuthService>();
+builder.Services.AddScoped<IXeroAccountService, XeroAccountService>();
+
 builder.Services.AddHttpClient<XeroAccountService>(); // registers with HttpClient
 builder.Services.AddScoped<XeroAccountService>();      // registers as a scoped service
 
