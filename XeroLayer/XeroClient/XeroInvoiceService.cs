@@ -1,23 +1,18 @@
-﻿using Microsoft.Extensions.DependencyInjection; // Required for CreateClient() extension
+﻿
 using System.Net.Http.Headers;
-
-
 using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Text.Json;
-
 using WebApplication1.Data;
 using Microsoft.EntityFrameworkCore;
 using DataLayer.Models.Xero;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using Microsoft.Extensions.DependencyInjection;
 using DataLayer.Models;
+using XeroLayer.Interface;
 
 
-
-    public class XeroInvoiceService
-     {
+public class XeroInvoiceService : IXeroInvoiceService
+{
         private readonly ApplicationDbContext _db;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly HttpClient _httpClient;
@@ -31,7 +26,7 @@ using DataLayer.Models;
 
         }
 
-        public async Task<int> FetchAndStoreInvoicesAsync(string? type = null)
+    public async Task<int> FetchAndStoreInvoicesAsync(string? type = null)
     {
         if (type != null && type != "ACCPAY" && type != "ACCREC")
             throw new ArgumentException("Invalid invoice type. Allowed values are: ACCPAY, ACCREC, or null.");
@@ -162,8 +157,8 @@ using DataLayer.Models;
 
     }
 
-        private DateTime TryGetDateTime(JToken jsonElement, string propertyName)
-        {
+    private DateTime TryGetDateTime(JToken jsonElement, string propertyName)
+    {
             var dateElement = jsonElement[propertyName];
             if (dateElement != null && DateTime.TryParse(dateElement.ToString(), out var result))
             {
@@ -172,8 +167,8 @@ using DataLayer.Models;
             return DateTime.MinValue; // Return a default DateTime value if parsing fails
         }
 
-        public async Task<string> AddInvoiceToXeroAndDbAsync(XeroInvoiceCreateDto dto, string accessToken, string tenantId)
-        {
+    public async Task<string> AddInvoiceToXeroAndDbAsync(XeroInvoiceCreateDto dto, string accessToken, string tenantId)
+    {
             string invoiceId = string.Empty;
 
             // Step 1: Construct payload
@@ -286,7 +281,7 @@ using DataLayer.Models;
                     }
 
 
-        public async Task<IActionResult> DeleteInvoice(string invoiceId)
+    public async Task<IActionResult> DeleteInvoice(string invoiceId)
     {
         var tokenDetails = await _db.QuickBooksTokens
             .Where(x => x.Company == "Xero")
@@ -359,8 +354,8 @@ using DataLayer.Models;
 
 
 
-        public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
-        {
+    public async Task<string> UpdateInvoiceInXeroAsync(string invoiceId, XeroInvoiceUpdateDto dto, string accessToken, string tenantId)
+    {
         // Step 1: Fetch the existing invoice by QuickBooksId (which corresponds to InvoiceID in the request body)
         var existingInvoice = await _db.Invoices.FirstOrDefaultAsync(inv => inv.QuickBooksId == invoiceId);
 
@@ -423,9 +418,8 @@ using DataLayer.Models;
 return updatedInvoiceId ?? invoiceId;
 }
 
-
-        public async Task<string> GetInvoiceFromXeroByIdAsync(string invoiceId)
-        {
+    public async Task<string> GetInvoiceFromXeroByIdAsync(string invoiceId)
+    {
             // Step 1: Get the latest Xero token
             var token = await _db.QuickBooksTokens
                 .Where(t => t.Company == "Xero")
