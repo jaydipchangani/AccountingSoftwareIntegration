@@ -12,7 +12,7 @@ using XeroLayer.XeroAuth;
 using XeroLayer.Interface;
 using XeroLayer.Interfaces;
 using QBO.QBOAuth;
-
+using QBO.Interface;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +40,7 @@ builder.Services.AddScoped<IXeroAccountService, XeroAccountService>();
 builder.Services.AddScoped<IXeroCustomerService, XeroCustomerService>();
 builder.Services.AddScoped<IXeroInvoiceService, XeroInvoiceService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IBillService, BillService>();
 
 
 

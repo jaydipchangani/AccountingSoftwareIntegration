@@ -4,10 +4,11 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using QBO.Interface;
 using WebApplication1.Data;
 using WebApplication1.Models;
 
-public class BillService
+public class BillService : IBillService
 {
     private readonly HttpClient _httpClient;
     private readonly ApplicationDbContext _context;
