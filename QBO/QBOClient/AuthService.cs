@@ -136,39 +136,26 @@ namespace WebApplication1.Services
         {
             try
             {
-                var qboTokens = await _dbContext.QuickBooksTokens.Where(t => t.Company == "QBO").ToListAsync();
-                if (qboTokens.Any())
+                var allTokens = await _dbContext.QuickBooksTokens.ToListAsync();
+
+                if (allTokens.Any())
                 {
-                    var userIds = qboTokens.Select(t => t.QuickBooksUserId).ToList();
+                    // Optional: Fetch associated data if you want to handle them too
+                    var userIds = allTokens.Select(t => t.QuickBooksUserId).ToList();
+
                     var accounts = await _dbContext.ChartOfAccounts
-                        .Where(a => userIds.Contains(a.QuickBooksUserId) && a.Company == "QBO")
+                        .Where(a => userIds.Contains(a.QuickBooksUserId))
                         .ToListAsync();
+
                     var customers = await _dbContext.Customers
                         .Where(c => userIds.Contains(c.QuickBooksUserId))
                         .ToListAsync();
 
-                    _dbContext.ChartOfAccounts.RemoveRange(accounts);
-                    _dbContext.Customers.RemoveRange(customers);
-                    _dbContext.QuickBooksTokens.RemoveRange(qboTokens);
-                }
-
-                var xeroTokens = await _dbContext.QuickBooksTokens.Where(t => t.Company == "Xero").ToListAsync();
-                if (xeroTokens.Any())
-                {
-                    var xeroAccounts = await _dbContext.ChartOfAccounts
-                        .Where(c => c.Company == "Xero")
-                        .ToListAsync();
-                    var xeroCustomers = await _dbContext.Customers
-                        .Where(c => c.Company == "Xero")
-                        .ToListAsync();
-
-                    _dbContext.ChartOfAccounts.RemoveRange(xeroAccounts);
-                    _dbContext.Customers.RemoveRange(xeroCustomers);
-                    _dbContext.QuickBooksTokens.RemoveRange(xeroTokens);
+                    _dbContext.QuickBooksTokens.RemoveRange(allTokens);
                 }
 
                 await _dbContext.SaveChangesAsync();
-                return new OkObjectResult("All QuickBooks and Xero tokens and associated data deleted successfully.");
+                return new OkObjectResult("All QuickBooks tokens and associated data deleted successfully.");
             }
             catch (Exception ex)
             {
@@ -176,6 +163,7 @@ namespace WebApplication1.Services
                 return new StatusCodeResult(500);
             }
         }
+
 
         public IActionResult GetTokenStatus()
         {
